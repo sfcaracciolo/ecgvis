@@ -1,0 +1,6 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="icons">
+        <file alias="file.png">img/database.png</file>
+    </qresource>
+</RCC>
