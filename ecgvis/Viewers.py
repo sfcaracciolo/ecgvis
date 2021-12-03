@@ -1,20 +1,21 @@
 import vispy as vp
 from vispy import visuals
 from vispy.scene.widgets import widget
-from ecgvis.Views import MatrixTableView
+from ecgvis.Views import FPTView, MatrixTableView
 from typing import Optional
 from ecgvis.CustomWidgets import CursorsWidget, LineEditWithDrop
-from ecgvis.Models import CursorsModel, MatrixModel
-from ecgvis.Constants import AMBER, LIGHT_AMBER, RED, WHITE
+from ecgvis.Models import CursorsModel, FPTModel, MatrixModel
+from ecgvis.Constants import *
 from vispy.visuals.transforms.linear import STTransform
-from ecgvis.CustomVisuals import Isolines, LinePicking, Lines, MarkersPicking
-from PySide6.QtCore import QSortFilterProxyModel, Qt
-from PySide6.QtWidgets import QDialog, QGroupBox, QHBoxLayout, QLabel, QPushButton, QSlider, QTableView, QVBoxLayout, QWidget
+from ecgvis.CustomVisuals import Isolines, LinePicking, Lines, MarkersPicking, RegionsLine
+from PySide6.QtCore import QSize, QSortFilterProxyModel, Qt
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QVBoxLayout
 import numpy as np
 from qtrangeslider import QRangeSlider
 from vispy import scene
 import pathlib
 from datetime import datetime
+import ecg_tools
 
 class SpatioTemporalViewer(QDialog):
     def __init__(self, model, vertices, faces, values, parent=None):
@@ -499,3 +500,81 @@ class MatrixViewer(QDialog):
             self.model.zarr_root.create_dataset(path, data=array)
         except:
             print('Dataset already exists.')
+
+class FPTViewer(QDialog):
+
+    def __init__(self, model, signal, fpt, window, parent=None) -> None:
+        super().__init__(parent=parent)
+        self.model = model
+        self.signal = np.ravel(signal)
+        self.table_data = fpt
+        self.table_data[ self.table_data == INT_NAN] =  -1 
+        self.window_size = window
+        self.table_model = FPTModel(fpt)
+
+        self.matrix, self.onsets, _ = ecg_tools.utils.sliding_window_from_centers(
+            self.signal, 
+            np.ravel(fpt[:,5]), 
+            window
+        )
+
+
+        self.setup_canvas()
+        self.setup_ui()
+        self.setup_callbacks()
+
+    def setup_canvas(self):
+        self.canvas = scene.SceneCanvas(show=True, bgcolor='black', size=(800,200), parent=self)
+        # self.canvas.measure_fps()
+        self.view = self.canvas.central_widget.add_view()
+        self.view.camera = 'panzoom'
+        self.view.camera.interactive = False
+        self.view.camera.set_range(
+            x=(0, self.window_size-1),
+            y=(1.1*self.signal.min(), 1.1*self.signal.max()),
+            margin=0.
+        )
+
+        self.line = RegionsLine(self.window_size, parent=self.view.scene)
+
+    def setup_ui(self):
+        self.setWindowTitle('FPT Viewer')
+        self.table = FPTView(self.table_model)
+        vlayout = QVBoxLayout()
+        vlayout.addWidget(self.table, stretch=3)
+        vlayout.addWidget(self.canvas.native, stretch=1)
+        self.setLayout(vlayout)
+        self.resize(QSize(800, 1000))
+        self.show()
+
+    def setup_callbacks(self):
+        self.table.row.connect(self.set_line)
+
+    def set_line(self, index):
+
+        points = np.array(
+            [
+                [self.table_data[index, 0], self.table_data[index, 2]], # Pon, Poff
+                [self.table_data[index, 3], self.table_data[index, 7]], # QRSon, QRSoff
+                [self.table_data[index, 9], self.table_data[index, 11]], # Ton, Toff
+            ], dtype = np.float32
+        )
+        points = np.where(points == -1, -1, points-self.onsets[index])
+        points[np.any(points == -1, axis=1),:] = -1
+        
+        markers = np.array(
+            [
+                [self.table_data[index, 1], 0], # Ppeak, P
+                [self.table_data[index, 5], 0], # QRSpeak, QRS
+                [self.table_data[index, 10], 0], # Tpeak, T
+            ], dtype = np.float32
+        )
+        
+        markers[:,0] = np.where(markers[:,0] == -1, -1, markers[:,0]-self.onsets[index])
+        markers[:,1] = np.where(markers[:,0] == -1, 0, self.matrix[index, markers[:,0].astype(np.int32)])
+
+        self.line.set_data(
+            self.matrix[index, :],
+            points,
+            markers
+        )
