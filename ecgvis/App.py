@@ -1,5 +1,5 @@
 from PySide6.QtGui import QKeyEvent, QScreen
-from ecgvis.Forms import IsolineCorrectionForm, LaplaceInterpolationForm, MatrixViewerForm, MedianFilterForm, NonlinearNotchForm, SparseDictBuilderForm, SpatioTemporalViewerForm, SplineFilterForm, TemporalViewerForm
+from ecgvis.Forms import *
 from ecgvis.Panels import TasksContainer, ZarrExplorer
 from ecgvis.Models import ZarrModel
 import sys
@@ -56,7 +56,7 @@ class ecgvis(QMainWindow):
             (IsolineCorrectionForm(self.model), 'Isoline Correction'),
             (LaplaceInterpolationForm(self.model), 'Laplace Spatial Interpolation'),
             (SparseDictBuilderForm(self.model), 'Sparse Dictionary Builder'),
-            # (FPTForm(self.model), 'Fiducials Viewer'),
+            (FPTForm(self.model), 'Fiducials Point Table Viewer'),
         ]
 
         # Menu Bar
@@ -77,6 +77,11 @@ class ecgvis(QMainWindow):
         self.setCentralWidget(QWidget())
         self.show()
         self.resize(500, 700)
+
+        # load default zarr path
+        # path = '/media/santiago/datos/sync/Tesis doctoral/Artículos propios/WR/wr_db_caracciolo.zarr'
+        # self.model.setZarrRoot(path)
+        # zarrExplorer.treeView.setRootIndex(self.model.index(path))
 
     def screenshot(self):
         dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

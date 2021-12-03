@@ -1,7 +1,7 @@
 from PySide6.QtCore import QStringListModel, Qt
 import numpy as np
-from ecgvis.Viewers import MatrixViewer, SpatioTemporalViewer, TemporalViewer
-from PySide6.QtGui import QColor
+from ecgvis.Viewers import *
+from PySide6.QtGui import QColor, QDropEvent
 from ecgvis.CustomWidgets import TaskForm, TensorWidget
 from PySide6.QtWidgets import QColorDialog, QComboBox, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QGridLayout, QGroupBox, QLabel, QPushButton, QSpinBox, QVBoxLayout, QWidget
 try:
@@ -380,6 +380,7 @@ class SpatioTemporalViewerForm(QGroupBox):
             self._viewers.append(SpatioTemporalViewer(self.model, self.nodes.get_tensor(), self.faces.get_tensor(), self.values.get_tensor()))
 
 class SparseDictBuilderForm(TaskForm):
+    
     def __init__(self, model, parent=None) -> None:
         super().__init__(model, parent=parent)
         self.model = model
@@ -551,3 +552,59 @@ class SparseDictBuilderForm(TaskForm):
 
         D = spdict.utils.create_sparse_dict_from_atoms(atoms, samples, step)
         self.save2zarr(D.toarray())
+
+class FPTForm(QGroupBox):
+    def __init__(self, model, parent=None) -> None:
+        super().__init__(parent=parent)
+        self.model = model
+        self._list_viewers = []
+        self.setup_ui()
+        self.setup_callbacks()
+
+        self.set_default()
+
+    def setup_callbacks(self):
+        self.box_buttons.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+
+    def toggle_visibility(self):
+        if self.isHidden():
+            self.show()
+        else:
+            self.hide()
+
+    def setup_ui(self):
+        self.signal = TensorWidget(self.model)
+        self.fpt = TensorWidget(self.model)
+        self.input_window = QSpinBox()
+        self.input_window.setMinimum(-1)
+        self.input_window.setMaximum(2000)
+        self.input_window.setValue(0)
+        self.box_buttons = QDialogButtonBox(QDialogButtonBox.Apply)# | QDialogButtonBox.Cancel)
+
+        layout = QFormLayout()
+        layout.addRow('ECG', self.signal)
+        layout.addRow('FPT', self.fpt)
+        layout.addRow('Window size', self.input_window)
+        layout.addWidget(self.box_buttons)
+        # layout.addStretch(1)
+        self.setLayout(layout)
+        self.hide()
+
+    def set_default(self):
+        self.signal.path.setText('50/raw_bp_2_300_pli_iso')
+        self.signal.sliding.setText(':')
+        self.fpt.path.setText('50/fpt')
+        self.fpt.sliding.setText(':,:')
+        self.input_window.setValue(235)
+
+        self.show()
+
+    def apply(self):
+        v = FPTViewer(
+            self.model,
+            self.signal.get_tensor(),
+            self.fpt.get_tensor(),
+            window = self.input_window.value(),
+            parent=self.parent()
+        )
+        self._list_viewers.append(v)
