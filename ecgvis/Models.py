@@ -1,14 +1,14 @@
 import os
 import pathlib
 from typing import Any, Union
-import typing 
-from PySide6.QtCore import QAbstractListModel, QAbstractTableModel, QDir, Qt, QPersistentModelIndex, QModelIndex, QMimeData
+import typing
+from PySide6.QtCore import QAbstractListModel, QAbstractTableModel, QDir, QSortFilterProxyModel, Qt, QPersistentModelIndex, QModelIndex, QMimeData, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QFileSystemModel
 import zarr 
 import numpy as np
 from ecgvis import resources
-
+from ecgvis.Constants import * 
 
 class MatrixModel(QAbstractTableModel):
     def __init__(self, data: np.ndarray, parent=None) -> None:
@@ -24,7 +24,8 @@ class MatrixModel(QAbstractTableModel):
     def data(self, index: QModelIndex, role: int) -> typing.Any:
         if role == Qt.DisplayRole:
             i, j = index.row(), index.column()
-            return float(self._data[i,j])
+            value = self._data[i,j]
+            return float(value)
 
     def setData(self, index: Union[QModelIndex, QPersistentModelIndex], value: Any, role: int) -> bool:
         if role == Qt.EditRole:
@@ -150,3 +151,35 @@ class ZarrModel(QFileSystemModel):
         if attrs:
             info += attrs
         return zarr.util.info_html_report(info)
+
+class FPTModel(MatrixModel):
+    def __init__(self, data: np.ndarray, parent=None) -> None:
+        super().__init__(data, parent=parent)
+        self._header = (
+            'Pon',
+            'Ppeak',
+            'Poff',
+            'QRSon',
+            'Q',
+            'R',
+            'S',
+            'QRSoff',
+            'res.',
+            'Ton',
+            'Tpeak',
+            'Toff',
+            'res.',
+        )
+
+    def flags(self, index: Union[QModelIndex, QPersistentModelIndex]) -> Qt.ItemFlags:
+        return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int) -> typing.Any:
+
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self._header[section]
+
+        if orientation == Qt.Vertical and role == Qt.DisplayRole:
+            return section
+
+        return super().headerData(section, orientation, role=role)

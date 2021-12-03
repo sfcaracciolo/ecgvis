@@ -1,10 +1,11 @@
 from typing import Optional, Sequence, Union
+from PySide6 import QtCore
 from PySide6.QtGui import QKeyEvent, QDropEvent
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex, Qt, Signal, QItemSelection
 from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTableView, QTreeView, QWidget
 import shutil
 from pathlib import Path
-
+        
 class MatrixTableView(QTableView):
     def __init__(self, model, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent=parent)
@@ -27,6 +28,30 @@ class MatrixTableView(QTableView):
             self.resizeCellsToContents()
         return super().keyPressEvent(event)
 
+class FPTView(QTableView):
+    row = Signal(int)
+
+    def __init__(self, model, parent=None) -> None:
+        super().__init__(parent=parent)
+        self._model = model
+        self.setCornerButtonEnabled(False)
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.setModel(model)
+        self.resizeColumnsToContents()
+
+        self.hheader = self.horizontalHeader()
+        self.vheader = self.verticalHeader()
+
+    def selectionChanged(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection) -> None:
+        try:
+            index = selected.indexes()[0].row()
+        except IndexError:
+            pass
+        else:
+            self.row.emit(index)
+        return super().selectionChanged(selected, deselected)
+        
 class ZarrTreeView(QTreeView):
 
     info_signal = Signal(str)
