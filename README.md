@@ -6,6 +6,7 @@ A desktop application to visualize ECG data both temporal and spatially over geo
 
 ```
 pip install git+https://github.com/sfcaracciolo/ecgvis.git
+pip install git+https://github.com/sfcaracciolo/ecg_tools.git
 ```
 
 ## Usage
