@@ -9,14 +9,14 @@ try:
     from ecgi_tools.utils import laplace_interpolation
 except ModuleNotFoundError:
     pass
-try:
-    import spdict
-except ModuleNotFoundError:
-    pass
-try:
-    import pywt
-except ModuleNotFoundError:
-    pass
+# try:
+#     import spdict
+# except ModuleNotFoundError:
+#     pass
+# try:
+#     import pywt
+# except ModuleNotFoundError:
+#     pass
 
 MAX_OVERLAY = 5
 
@@ -379,179 +379,179 @@ class SpatioTemporalViewerForm(QGroupBox):
         if all(conds):
             self._viewers.append(SpatioTemporalViewer(self.model, self.nodes.get_tensor(), self.faces.get_tensor(), self.values.get_tensor()))
 
-class SparseDictBuilderForm(TaskForm):
+# class SparseDictBuilderForm(TaskForm):
     
-    def __init__(self, model, parent=None) -> None:
-        super().__init__(model, parent=parent)
-        self.model = model
-        self.field_widgets = []
-        self.label_widgets = []
-        self.setup_ui()
-        self.setup_callbacks()
-        self.set_dict_type(0)
+#     def __init__(self, model, parent=None) -> None:
+#         super().__init__(model, parent=parent)
+#         self.model = model
+#         self.field_widgets = []
+#         self.label_widgets = []
+#         self.setup_ui()
+#         self.setup_callbacks()
+#         self.set_dict_type(0)
 
-    def setup_callbacks(self):
-        self.buttons.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
-        self.input_type.currentIndexChanged.connect(lambda i: self.set_dict_type(i))
+#     def setup_callbacks(self):
+#         self.buttons.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+#         self.input_type.currentIndexChanged.connect(lambda i: self.set_dict_type(i))
         
-    def setup_ui(self):
-        # self.form_layout.setVerticalSpacing(0)
+#     def setup_ui(self):
+#         # self.form_layout.setVerticalSpacing(0)
 
-        self.input_samples = QSpinBox()
-        self.input_samples.setMinimum(1)
-        self.input_samples.setMaximum(2048)
-        self.input_samples.setSingleStep(1)
+#         self.input_samples = QSpinBox()
+#         self.input_samples.setMinimum(1)
+#         self.input_samples.setMaximum(2048)
+#         self.input_samples.setSingleStep(1)
 
-        self.input_step = QSpinBox()
-        self.input_step.setMinimum(1)
-        self.input_step.setMaximum(2048)
-        self.input_step.setSingleStep(1)
+#         self.input_step = QSpinBox()
+#         self.input_step.setMinimum(1)
+#         self.input_step.setMaximum(2048)
+#         self.input_step.setSingleStep(1)
 
-        self.input_type = QComboBox()
-        self.input_type.addItems(['Identity', 'Stationary Wavelet Transform', 'Wavelet Packet', 'Continuous Wavelet Transform'])
+#         self.input_type = QComboBox()
+#         self.input_type.addItems(['Identity', 'Stationary Wavelet Transform', 'Wavelet Packet', 'Continuous Wavelet Transform'])
 
-        self.form_layout.insertRow(0,'Samples', self.input_samples)
-        self.form_layout.insertRow(1,'Step', self.input_step)
-        self.form_layout.insertRow(2,'Type', self.input_type)
+#         self.form_layout.insertRow(0,'Samples', self.input_samples)
+#         self.form_layout.insertRow(1,'Step', self.input_step)
+#         self.form_layout.insertRow(2,'Type', self.input_type)
 
-        self.id_ui()
-        self.swt_ui()
-        self.wpd_ui()
-        self.cwt_ui()
+#         self.id_ui()
+#         self.swt_ui()
+#         self.wpd_ui()
+#         self.cwt_ui()
         
-        self.insertWidgets()
+#         self.insertWidgets()
 
-    def id_ui(self):
+#     def id_ui(self):
 
-        # identiy
-        # self._continuous_families = pywt.families(short=False)[7:10] # only continuous non complex wavelets
-        # self._short_continuous_families = pywt.families(short=True)[7:10] # only continuous non complex wavelets
-        self.field_widgets.append([QWidget()])
-        self.label_widgets.append([QLabel()])
+#         # identiy
+#         # self._continuous_families = pywt.families(short=False)[7:10] # only continuous non complex wavelets
+#         # self._short_continuous_families = pywt.families(short=True)[7:10] # only continuous non complex wavelets
+#         self.field_widgets.append([QWidget()])
+#         self.label_widgets.append([QLabel()])
 
-    def swt_ui(self):
-        # swt
-        level = QSpinBox()
-        level.setMinimum(1)
-        level.setMaximum(2048)
-        level.setSingleStep(1)
+#     def swt_ui(self):
+#         # swt
+#         level = QSpinBox()
+#         level.setMinimum(1)
+#         level.setMaximum(2048)
+#         level.setSingleStep(1)
 
-        family = QComboBox()
-        model = QStringListModel()
-        model.setStringList(pywt.families(short=True)[:7])
-        family.setModel(model)
+#         family = QComboBox()
+#         model = QStringListModel()
+#         model.setStringList(pywt.families(short=True)[:7])
+#         family.setModel(model)
 
-        order = QComboBox()
-        model = QStringListModel()
-        self.setDiscreteOrder(model, 0)
-        order.setModel(model)
+#         order = QComboBox()
+#         model = QStringListModel()
+#         self.setDiscreteOrder(model, 0)
+#         order.setModel(model)
         
-        family.currentIndexChanged.connect(lambda t: self.setDiscreteOrder(model, t))
+#         family.currentIndexChanged.connect(lambda t: self.setDiscreteOrder(model, t))
 
-        self.field_widgets.append([level, family, order])
-        self.label_widgets.append(['Max. Level','Wavelet Family','Wavelet Order'])
+#         self.field_widgets.append([level, family, order])
+#         self.label_widgets.append(['Max. Level','Wavelet Family','Wavelet Order'])
 
-    def wpd_ui(self):
-        # swt
-        level = QSpinBox()
-        level.setMinimum(1)
-        level.setMaximum(2048)
-        level.setSingleStep(1)
+#     def wpd_ui(self):
+#         # swt
+#         level = QSpinBox()
+#         level.setMinimum(1)
+#         level.setMaximum(2048)
+#         level.setSingleStep(1)
 
-        family = QComboBox()
-        model = QStringListModel()
-        model.setStringList(pywt.families(short=True)[:7])
-        family.setModel(model)
+#         family = QComboBox()
+#         model = QStringListModel()
+#         model.setStringList(pywt.families(short=True)[:7])
+#         family.setModel(model)
 
-        order = QComboBox()
-        model = QStringListModel()
-        self.setDiscreteOrder(model, 0)
-        order.setModel(model)
+#         order = QComboBox()
+#         model = QStringListModel()
+#         self.setDiscreteOrder(model, 0)
+#         order.setModel(model)
 
-        family.currentIndexChanged.connect(lambda t: self.setDiscreteOrder(model, t))
+#         family.currentIndexChanged.connect(lambda t: self.setDiscreteOrder(model, t))
 
-        self.field_widgets.append([level, family, order])
-        self.label_widgets.append(['Max. Level','Wavelet Family','Wavelet Order'])
+#         self.field_widgets.append([level, family, order])
+#         self.label_widgets.append(['Max. Level','Wavelet Family','Wavelet Order'])
 
-    def cwt_ui(self):
-        # swt
-        level = QSpinBox()
-        level.setMinimum(1)
-        level.setMaximum(2048)
-        level.setSingleStep(1)
+#     def cwt_ui(self):
+#         # swt
+#         level = QSpinBox()
+#         level.setMinimum(1)
+#         level.setMaximum(2048)
+#         level.setSingleStep(1)
 
-        family = QComboBox()
-        model = QStringListModel()
-        model.setStringList(pywt.families(short=True)[7:10])
-        family.setModel(model)
+#         family = QComboBox()
+#         model = QStringListModel()
+#         model.setStringList(pywt.families(short=True)[7:10])
+#         family.setModel(model)
 
-        order = QComboBox()
-        model = QStringListModel()
-        self.setContinuousOrder(model, 0)
-        order.setModel(model)
+#         order = QComboBox()
+#         model = QStringListModel()
+#         self.setContinuousOrder(model, 0)
+#         order.setModel(model)
 
-        family.currentIndexChanged.connect(lambda t: self.setContinuousOrder(model, t))
+#         family.currentIndexChanged.connect(lambda t: self.setContinuousOrder(model, t))
 
-        self.field_widgets.append([level, family, order])
-        self.label_widgets.append(['Max. Level','Wavelet Family','Wavelet Order'])
+#         self.field_widgets.append([level, family, order])
+#         self.label_widgets.append(['Max. Level','Wavelet Family','Wavelet Order'])
 
-    def insertWidgets(self):
-        i = 3
-        for names, widgets in zip(self.label_widgets, self.field_widgets):
-            for n, w in zip(names, widgets):
-                self.form_layout.insertRow(i, n, w)
-                i += 1
+#     def insertWidgets(self):
+#         i = 3
+#         for names, widgets in zip(self.label_widgets, self.field_widgets):
+#             for n, w in zip(names, widgets):
+#                 self.form_layout.insertRow(i, n, w)
+#                 i += 1
 
-    def set_dict_type(self, ix):
-        self.hideRows()
-        self.setVisibleRows(self.field_widgets[ix], visible=True)
+#     def set_dict_type(self, ix):
+#         self.hideRows()
+#         self.setVisibleRows(self.field_widgets[ix], visible=True)
 
-    def setVisibleRows(self, widgets, visible=True):
-        for w in widgets:
-            row, role = self.form_layout.getWidgetPosition(w)
+#     def setVisibleRows(self, widgets, visible=True):
+#         for w in widgets:
+#             row, role = self.form_layout.getWidgetPosition(w)
             
-            field = self.form_layout.itemAt(row, role).widget()
-            field.setVisible(visible)
+#             field = self.form_layout.itemAt(row, role).widget()
+#             field.setVisible(visible)
 
-            label = self.form_layout.labelForField(field)
-            label.setVisible(visible)
+#             label = self.form_layout.labelForField(field)
+#             label.setVisible(visible)
             
-    def hideRows(self):
-        for widgets in self.field_widgets:
-            self.setVisibleRows(widgets, visible=False)
+#     def hideRows(self):
+#         for widgets in self.field_widgets:
+#             self.setVisibleRows(widgets, visible=False)
         
-    def setDiscreteOrder(self, model, e):
-        f = pywt.families(short=True)[:7][e]
-        model.setStringList(pywt.wavelist(family=f))
+#     def setDiscreteOrder(self, model, e):
+#         f = pywt.families(short=True)[:7][e]
+#         model.setStringList(pywt.wavelist(family=f))
 
-    def setContinuousOrder(self,model, e):
-        f = pywt.families(short=True)[7:10][e]
-        model.setStringList(pywt.wavelist(family=f))
+#     def setContinuousOrder(self,model, e):
+#         f = pywt.families(short=True)[7:10][e]
+#         model.setStringList(pywt.wavelist(family=f))
 
-    def apply(self):
-        ix = self.input_type.currentIndex()
-        samples = self.input_samples.value()
-        step = self.input_step.value()
+#     def apply(self):
+#         ix = self.input_type.currentIndex()
+#         samples = self.input_samples.value()
+#         step = self.input_step.value()
 
-        fields = self.field_widgets[ix]
+#         fields = self.field_widgets[ix]
 
-        if  ix == 0:
-            atoms = [np.ones(1, dtype=np.float32)]
-        elif ix == 1: # swt
-            max_level = fields[0].value()
-            wname = fields[2].currentText()
-            atoms = spdict.utils.get_swt_atoms(wname, max_level)
-        elif ix == 2: # wpd
-            max_level = fields[0].value()
-            wname = fields[2].currentText()
-            atoms = spdict.utils.get_wp_atoms(wname, max_level)
-        elif ix == 3: # cwt
-            max_level = fields[0].value()
-            wname = fields[2].currentText()
-            atoms = spdict.utils.get_cwt_atoms(wname, max_level)
+#         if  ix == 0:
+#             atoms = [np.ones(1, dtype=np.float32)]
+#         elif ix == 1: # swt
+#             max_level = fields[0].value()
+#             wname = fields[2].currentText()
+#             atoms = spdict.utils.get_swt_atoms(wname, max_level)
+#         elif ix == 2: # wpd
+#             max_level = fields[0].value()
+#             wname = fields[2].currentText()
+#             atoms = spdict.utils.get_wp_atoms(wname, max_level)
+#         elif ix == 3: # cwt
+#             max_level = fields[0].value()
+#             wname = fields[2].currentText()
+#             atoms = spdict.utils.get_cwt_atoms(wname, max_level)
 
-        D = spdict.utils.create_sparse_dict_from_atoms(atoms, samples, step)
-        self.save2zarr(D.toarray())
+#         D = spdict.utils.create_sparse_dict_from_atoms(atoms, samples, step)
+#         self.save2zarr(D.toarray())
 
 class FPTForm(QGroupBox):
     def __init__(self, model, parent=None) -> None:

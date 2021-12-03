@@ -55,7 +55,7 @@ class ecgvis(QMainWindow):
             (SplineFilterForm(self.model), 'Baseline Drift Removal Spline Filter'),
             (IsolineCorrectionForm(self.model), 'Isoline Correction'),
             (LaplaceInterpolationForm(self.model), 'Laplace Spatial Interpolation'),
-            (SparseDictBuilderForm(self.model), 'Sparse Dictionary Builder'),
+            # (SparseDictBuilderForm(self.model), 'Sparse Dictionary Builder'),
             (FPTForm(self.model), 'Fiducials Point Table Viewer'),
         ]
 
