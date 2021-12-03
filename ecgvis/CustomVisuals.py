@@ -1,8 +1,60 @@
 
-from ecgvis.Constants import AMBER, RED
+from ecgvis.Constants import *
 from vispy import scene
 import numpy as np
 from vispy.visuals.transforms.linear import STTransform
+import itertools
+class RegionsLine(scene.Line):
+    def __init__(self, size, n_regions=3, parent=None) -> None:
+
+        self._dataline = np.zeros((size, 2), dtype=np.float32)
+        self._dataline[:,0] = np.arange(size)
+        self._datapoints = np.zeros((n_regions, 2), dtype=np.float32)
+        self._datamarkers = np.zeros((n_regions, 2), dtype=np.float32)
+    
+        scene.visuals.InfiniteLine(
+            pos=0,
+            vertical=False,
+            color=AMBER,
+            parent=parent
+        )
+
+
+        self.markers = scene.visuals.Markers(
+            parent=parent
+        )
+
+        self.regions = []
+        colors = itertools.cycle([LIGHT_RED, LIGHT_BLUE, LIGHT_GREEN])
+        for i in range(n_regions):
+            r = scene.visuals.LinearRegion(
+                pos=self._datapoints[i, :],
+                color=next(colors),
+                vertical=True,
+                parent=parent
+            )
+            self.regions.append(r)
+
+
+        super().__init__(
+            pos=self._dataline,
+            color='white',
+            parent=parent
+        )
+    
+    def set_data(self, line, points, markers):
+        self._dataline[:,1] = line
+        self.update()
+
+        self._datapoints[:] = points
+        for i, r in enumerate(self.regions):
+            r.set_data(pos=self._datapoints[i, :])
+
+        self._datamarkers[:] = markers
+        self.markers.set_data(
+            pos = self._datamarkers
+        )
+
 
 class LinePicking(scene.Line):
     def __init__(self, parent=None) -> None:
