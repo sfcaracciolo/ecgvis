@@ -564,9 +564,10 @@ class FPTViewer(QDialog):
         
         markers = np.array(
             [
-                [self.table_data[index, 1], 0], # Ppeak, P
-                [self.table_data[index, 5], 0], # QRSpeak, QRS
-                [self.table_data[index, 10], 0], # Tpeak, T
+                [self.table_data[index, 1], 0], # Ppos, Ppeak
+                [self.table_data[index, 5], 0], # Rpos, Rpeak
+                [self.table_data[index, 6], 0], # Spos, Speak
+                [self.table_data[index, 10], 0], # Tpos, Tpeak
             ], dtype = np.float32
         )
         

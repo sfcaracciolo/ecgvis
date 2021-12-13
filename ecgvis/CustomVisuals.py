@@ -5,12 +5,12 @@ import numpy as np
 from vispy.visuals.transforms.linear import STTransform
 import itertools
 class RegionsLine(scene.Line):
-    def __init__(self, size, n_regions=3, parent=None) -> None:
+    def __init__(self, size, n_regions=3, n_markers=4, parent=None) -> None:
 
         self._dataline = np.zeros((size, 2), dtype=np.float32)
         self._dataline[:,0] = np.arange(size)
         self._datapoints = np.zeros((n_regions, 2), dtype=np.float32)
-        self._datamarkers = np.zeros((n_regions, 2), dtype=np.float32)
+        self._datamarkers = np.zeros((n_markers, 2), dtype=np.float32)
     
         scene.visuals.InfiniteLine(
             pos=0,
