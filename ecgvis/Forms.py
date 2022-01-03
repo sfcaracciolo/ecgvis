@@ -575,6 +575,7 @@ class FPTForm(QGroupBox):
     def setup_ui(self):
         self.signal = TensorWidget(self.model)
         self.fpt = TensorWidget(self.model)
+        self.bad_beats = TensorWidget(self.model)
         self.input_window = QSpinBox()
         self.input_window.setMinimum(-1)
         self.input_window.setMaximum(2000)
@@ -584,6 +585,7 @@ class FPTForm(QGroupBox):
         layout = QFormLayout()
         layout.addRow('ECG', self.signal)
         layout.addRow('FPT', self.fpt)
+        layout.addRow('Bad beats', self.bad_beats)
         layout.addRow('Window size', self.input_window)
         layout.addWidget(self.box_buttons)
         # layout.addStretch(1)
@@ -595,6 +597,8 @@ class FPTForm(QGroupBox):
         self.signal.sliding.setText(':')
         self.fpt.path.setText('50/fpt')
         self.fpt.sliding.setText(':,:')
+        self.bad_beats.path.setText('50/bad_beats')
+        self.bad_beats.sliding.setText(':')
         self.input_window.setValue(235)
 
         self.show()
@@ -604,6 +608,7 @@ class FPTForm(QGroupBox):
             self.model,
             self.signal.get_tensor(),
             self.fpt.get_tensor(),
+            self.bad_beats.get_tensor(),
             window = self.input_window.value(),
             parent=self.parent()
         )

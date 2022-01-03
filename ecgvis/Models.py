@@ -2,6 +2,7 @@ import os
 import pathlib
 from typing import Any, Union
 import typing
+from PySide6 import QtGui
 from PySide6.QtCore import QAbstractListModel, QAbstractTableModel, QDir, QSortFilterProxyModel, Qt, QPersistentModelIndex, QModelIndex, QMimeData, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QFileSystemModel
@@ -153,8 +154,9 @@ class ZarrModel(QFileSystemModel):
         return zarr.util.info_html_report(info)
 
 class FPTModel(MatrixModel):
-    def __init__(self, data: np.ndarray, parent=None) -> None:
+    def __init__(self, data: np.ndarray, mask: np.ndarray, parent=None) -> None:
         super().__init__(data, parent=parent)
+        self.mask = mask
         self._header = (
             'Pon',
             'Ppeak',
@@ -183,3 +185,11 @@ class FPTModel(MatrixModel):
             return section
 
         return super().headerData(section, orientation, role=role)
+
+    def data(self, index: QModelIndex, role: int) -> typing.Any:
+        i = index.row()
+        if role == Qt.BackgroundRole:
+            if not self.mask[i]:
+                return QtGui.QColor.fromRgbF(*RED.tolist())
+
+        return super().data(index, role)

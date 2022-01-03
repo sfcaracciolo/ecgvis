@@ -503,14 +503,17 @@ class MatrixViewer(QDialog):
 
 class FPTViewer(QDialog):
 
-    def __init__(self, model, signal, fpt, window, parent=None) -> None:
+    def __init__(self, model, signal, fpt, bad_beats, window, parent=None) -> None:
         super().__init__(parent=parent)
         self.model = model
         self.signal = np.ravel(signal)
         self.table_data = fpt
-        self.table_data[ self.table_data == INT_NAN] =  -1 
+        self.table_data[ self.table_data == INT_NAN] =  -1
+        table_mask = np.ones(fpt.shape[0], dtype=np.bool8)
+        table_mask[bad_beats] = False
+
         self.window_size = window
-        self.table_model = FPTModel(fpt)
+        self.table_model = FPTModel(fpt, table_mask)
 
         self.matrix, self.onsets, _ = ecg_tools.utils.sliding_window_from_centers(
             self.signal, 
