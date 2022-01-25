@@ -44,7 +44,8 @@ class RegionsLine(scene.Line):
     
     def set_data(self, line, points, markers):
         self._dataline[:,1] = line
-        self.update()
+        # self.update() # works in linux
+        super().set_data(pos=self._dataline) # works in windows.
 
         self._datapoints[:] = points
         for i, r in enumerate(self.regions):
@@ -54,8 +55,6 @@ class RegionsLine(scene.Line):
         self.markers.set_data(
             pos = self._datamarkers
         )
-
-
 class LinePicking(scene.Line):
     def __init__(self, parent=None) -> None:
 
@@ -99,7 +98,6 @@ class LinePicking(scene.Line):
             self.cursor.set_data(color=AMBER)
             self.cursor.update()
             self.active = False
-
 class Lines(scene.Line):
     def __init__(self, n_lines, line_size, dx, offset, color, parent) -> None:
         self._line_size = line_size
@@ -135,7 +133,6 @@ class Lines(scene.Line):
         y *= factor
         y -= self._offset
         self.update()
-
 class Isolines(Lines):
     def __init__(self, n_lines, line_size, dx, offset, color, parent) -> None:
         super().__init__(n_lines, line_size, dx, offset, color, parent)
@@ -152,7 +149,6 @@ class Isolines(Lines):
         stop = start + self._line_size
         # y[start:stop] = data
         y[start:stop] -= self._offset[start:stop]
-
 class MarkersPicking(scene.Markers):
     """
     Create a 3D scatter plot window that is zoomable and rotateable, with

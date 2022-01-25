@@ -99,7 +99,8 @@ class ZarrTreeView(QTreeView):
         data = event.mimeData()
         if data.hasUrls():
             if len(data.urls()) == 1:
-                path = data.urls()[0].path()
+                path = data.urls()[0].toLocalFile()
+                # path = data.urls()[0].path()
                 if Path(path).suffix == '.zarr':
                     self.model().setZarrRoot(path)
                     self.setRootIndex(self.model().index(path))

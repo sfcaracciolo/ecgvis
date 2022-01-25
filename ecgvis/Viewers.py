@@ -11,7 +11,7 @@ from ecgvis.CustomVisuals import Isolines, LinePicking, Lines, MarkersPicking, R
 from PySide6.QtCore import QSize, QSortFilterProxyModel, Qt
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QVBoxLayout
 import numpy as np
-from qtrangeslider import QRangeSlider
+from superqt import QRangeSlider
 from vispy import scene
 import pathlib
 from datetime import datetime
@@ -237,6 +237,7 @@ class TemporalViewer(QDialog):
         self.cursors_widget.load_button.clicked.connect(self.load)
 
     def hslider_change(self, value):
+        value = self.hslider.value() # tuve que agregar esto porque value = 0 siempre. No se por que 
         self.x_range = value
         self.set_range()
 
@@ -346,6 +347,7 @@ class TemporalViewer(QDialog):
                 lines.set_data(i, matrix[:,i])
 
     def set_range(self):
+        # print(self.x_range)
         self.view.camera.set_range(x=self.x_range, y=self.y_range, margin=0.)
         self.text_view.camera.set_range(x=(-10, 10), y=self.y_range, margin=0.)
 
@@ -531,7 +533,7 @@ class FPTViewer(QDialog):
         # self.canvas.measure_fps()
         self.view = self.canvas.central_widget.add_view()
         self.view.camera = 'panzoom'
-        self.view.camera.interactive = False
+        self.view.camera.interactive = True
         self.view.camera.set_range(
             x=(0, self.window_size-1),
             y=(1.1*self.signal.min(), 1.1*self.signal.max()),
