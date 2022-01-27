@@ -10,9 +10,9 @@ pip install git+https://github.com/sfcaracciolo/ecg_tools.git
 ```
 
 ## Usage
+after activation virtual enviroment
 ```
-from ecgvis import App
-App.run()
+python -m ecgvis.run
 ```
 ## Contact
 Please, if you use this fragment, contact me at scaracciolo@conicet.gov.ar
