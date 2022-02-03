@@ -9,3 +9,4 @@ pyvenv.cfg
 /share
 .python-version
 Scripts/
+build/

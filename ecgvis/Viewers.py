@@ -372,7 +372,7 @@ class TemporalViewer(QDialog):
         key = e.key.name # e.native.text()
         modifiers = e.modifiers
 
-        if len(modifiers) > 0: # zoom en x.
+        if len(modifiers) > 0: # zoom en y.
             if modifiers[0].name == 'Shift' and key == '+':
                 self.scale(self.y_zoom_factor)
             elif modifiers[0].name == 'Shift' and key == '-':

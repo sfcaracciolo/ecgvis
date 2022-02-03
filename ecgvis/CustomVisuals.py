@@ -132,7 +132,9 @@ class Lines(scene.Line):
         y += self._offset
         y *= factor
         y -= self._offset
-        self.update()
+        # self.update()
+        super().set_data(pos=self._data) # works in windows.
+
 class Isolines(Lines):
     def __init__(self, n_lines, line_size, dx, offset, color, parent) -> None:
         super().__init__(n_lines, line_size, dx, offset, color, parent)
