@@ -593,13 +593,13 @@ class FPTForm(QGroupBox):
         self.hide()
 
     def set_default(self):
-        self.signal.path.setText('50/raw_bp_2_300_pli_iso')
+        self.signal.path.setText('164/raw_bp_2_300_pli_iso')
         self.signal.sliding.setText(':')
-        self.fpt.path.setText('50/fpt')
+        self.fpt.path.setText('164/fpt')
         self.fpt.sliding.setText(':,:')
-        self.bad_beats.path.setText('50/bad_beats')
+        self.bad_beats.path.setText('164/bad_beats')
         self.bad_beats.sliding.setText(':')
-        self.input_window.setValue(235)
+        self.input_window.setValue(330)
 
         self.show()
 

@@ -1,8 +1,5 @@
 import numpy as np
 
-INT_NAN = 2147483647
-
-
 AMBER = np.array((1.,.75,0.,.5), dtype=np.float32)
 LIGHT_AMBER = np.array((1.,.75,0.,.2), dtype=np.float32)
 RED = np.array((1.,0.,0.,.5), dtype=np.float32)

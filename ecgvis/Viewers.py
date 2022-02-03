@@ -16,6 +16,7 @@ from vispy import scene
 import pathlib
 from datetime import datetime
 import ecg_tools
+import fpt_tools
 
 class SpatioTemporalViewer(QDialog):
     def __init__(self, model, vertices, faces, values, parent=None):
@@ -509,20 +510,25 @@ class FPTViewer(QDialog):
         super().__init__(parent=parent)
         self.model = model
         self.signal = np.ravel(signal)
+
+        self.centered_fpt = fpt_tools.tools.centered_fpt(fpt, window)
+        self.centered_fpt[ self.centered_fpt == fpt_tools.tools.nan_value(fpt)] =  -1
+
         self.table_data = fpt
-        self.table_data[ self.table_data == INT_NAN] =  -1
+        self.table_data[ self.table_data == fpt_tools.tools.nan_value(fpt)] =  -1
+
         table_mask = np.ones(fpt.shape[0], dtype=np.bool8)
         table_mask[bad_beats] = False
 
         self.window_size = window
-        self.table_model = FPTModel(fpt, table_mask)
+        self.table_model = FPTModel(self.table_data, table_mask)
 
-        self.matrix, self.onsets, _ = ecg_tools.utils.sliding_window_from_centers(
+        # self.matrix, self.onsets, _ = ecg_tools.utils.sliding_window_from_centers(
+        self.matrix, _, _ = ecg_tools.utils.sliding_window_from_centers(
             self.signal, 
             np.ravel(fpt[:,5]), 
             window
         )
-
 
         self.setup_canvas()
         self.setup_ui()
@@ -559,24 +565,26 @@ class FPTViewer(QDialog):
 
         points = np.array(
             [
-                [self.table_data[index, 0], self.table_data[index, 2]], # Pon, Poff
-                [self.table_data[index, 3], self.table_data[index, 7]], # QRSon, QRSoff
-                [self.table_data[index, 9], self.table_data[index, 11]], # Ton, Toff
+                [self.centered_fpt[index, 0], self.centered_fpt[index, 2]], # Pon, Poff
+                [self.centered_fpt[index, 3], self.centered_fpt[index, 7]], # QRSon, QRSoff
+                [self.centered_fpt[index, 9], self.centered_fpt[index, 11]], # Ton, Toff
             ], dtype = np.float32
         )
-        points = np.where(points == -1, -1, points-self.onsets[index])
-        points[np.any(points == -1, axis=1),:] = -1
+        # points = np.where(points == -1, -1, points-self.onsets[index])
+        # points[np.any(points == -1, axis=1),:] = -1
         
         markers = np.array(
             [
-                [self.table_data[index, 1], 0], # Ppos, Ppeak
-                [self.table_data[index, 5], 0], # Rpos, Rpeak
-                [self.table_data[index, 6], 0], # Spos, Speak
-                [self.table_data[index, 10], 0], # Tpos, Tpeak
+                [self.centered_fpt[index, 1], 0], # Ppos, Ppeak
+                [self.window_size//2, 0],
+                # [self.table_data[index, 5], 0], # Rpos, Rpeak
+                [self.centered_fpt[index, 6], 0], # Spos, Speak
+                [self.centered_fpt[index, 10], 0], # Tpos, Tpeak
             ], dtype = np.float32
         )
         
-        markers[:,0] = np.where(markers[:,0] == -1, -1, markers[:,0]-self.onsets[index])
+        # print(index, markers[:,0], self.onsets[index], markers[:,0]-self.onsets[index])
+        # markers[:,0] = np.where(markers[:,0] == -1, -1, markers[:,0]-self.onsets[index])
         markers[:,1] = np.where(markers[:,0] == -1, 0, self.matrix[index, markers[:,0].astype(np.int32)])
 
         self.line.set_data(
