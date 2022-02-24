@@ -82,14 +82,16 @@ class TemporalViewerForm(QGroupBox):
             self._viewers.append(TemporalViewer(self.model, *inputs))
 
     def get_inputs(self):
-        matrices = []
+        tensors = []
         colors = []
         for _, tensor, scale, (_ , color) in self._rows:
             if tensor.path.text():
-                matrices.append(scale.value()*tensor.get_tensor())
+                tensor_data = tensor.get_tensor()
+                tensor_data *= scale.value()
+                tensors.append(tensor_data)
                 colors.append(color.currentColor().getRgbF())
 
-        return matrices, colors
+        return tensors, colors
         
 class NonlinearNotchForm(TaskForm):
     def __init__(self, model, parent=None) -> None:

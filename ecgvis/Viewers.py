@@ -21,8 +21,9 @@ import fpt_tools
 class SpatioTemporalViewer(QDialog):
     def __init__(self, model, vertices, faces, values, parent=None):
         super().__init__(f=Qt.WindowMaximizeButtonHint, parent=parent)
-        self.model = model
+        self.setAttribute(Qt.WA_DeleteOnClose) # free memory on close
 
+        self.model = model
         self.n_samples = values.shape[1]
         self.min_value, self.max_value = values.min().round(decimals=2), values.max().round(decimals=2)
 
@@ -194,7 +195,8 @@ class TemporalViewer(QDialog):
 
     def __init__(self, model, matrices, colors, parent=None):
         super().__init__(f=Qt.WindowMaximizeButtonHint, parent=parent)
-        # super().__init__(flags=Qt.WindowStaysOnTopHint, parent=parent)
+        self.setAttribute(Qt.WA_DeleteOnClose) # free memory on close
+
         self.model = model
         self._list_matrices = matrices
         self.n_overlay = len(matrices)
@@ -469,6 +471,8 @@ class TemporalViewer(QDialog):
 class MatrixViewer(QDialog):
     def __init__(self, model, matrix, parent=None) -> None:
         super().__init__(f=Qt.WindowMaximizeButtonHint, parent=parent)
+        self.setAttribute(Qt.WA_DeleteOnClose) # free memory on close
+
         self.model = model
         self.matrix_model = MatrixModel(matrix)
 
@@ -508,6 +512,8 @@ class FPTViewer(QDialog):
 
     def __init__(self, model, signal, fpt, bad_beats, window, parent=None) -> None:
         super().__init__(parent=parent)
+        self.setAttribute(Qt.WA_DeleteOnClose) # free memory on close
+
         self.model = model
         self.signal = np.ravel(signal)
 
