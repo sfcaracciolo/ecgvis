@@ -2,9 +2,8 @@ import os
 import pathlib
 from typing import Any, Union
 import typing
-from PySide6 import QtGui
 from PySide6.QtCore import QAbstractListModel, QAbstractTableModel, QDir, QSortFilterProxyModel, Qt, QPersistentModelIndex, QModelIndex, QMimeData, Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QColor
 from PySide6.QtWidgets import QFileSystemModel
 import zarr 
 import numpy as np
@@ -190,6 +189,6 @@ class FPTModel(MatrixModel):
         i = index.row()
         if role == Qt.BackgroundRole:
             if not self.mask[i]:
-                return QtGui.QColor.fromRgbF(*RED.tolist())
+                return QColor.fromRgbF(*RED.tolist())
 
         return super().data(index, role)
