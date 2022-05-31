@@ -56,6 +56,7 @@ class SpatioTemporalViewer(QDialog):
         self.canvas.connect(self.on_mouse_press)
 
     def set_time(self, value):
+        self.sample_text.text = str(value)
         self.meshdata.set_vertex_values(self.values[:,value])
         self.mesh.mesh_data_changed()
 
@@ -139,7 +140,14 @@ class SpatioTemporalViewer(QDialog):
         self.vb2.camera.interactive = False
 
         self.line = self.setup_line()
+
+        self.sample_text = scene.visuals.Text(
+            color = 'white',
+            pos = (0, self.max_value/2)
+        )
+
         self.vb2.add(self.line)
+        self.vb2.add(self.sample_text)
 
     def setup_markers(self):
         scatter = MarkersPicking(
