@@ -46,6 +46,7 @@ class ecgvis(QMainWindow):
             (TemporalViewerForm(self.model), 'Temporal Viewer'),
             (MatrixViewerForm(self.model), 'Matrix Viewer'),
             (SpatioTemporalViewerForm(self.model), 'SpatioTemporal Viewer'),
+            (AtRtViewerForm(self.model), 'AT/RT Viewer'),
             # (ExperimentForm(self.model), 'Experiment Analizer'),
             # (InverseProblemForm(self.model), 'Inverse Problem'),
             # (NearestNodesForm(self.model), 'Nearest Nodes'),
@@ -79,9 +80,9 @@ class ecgvis(QMainWindow):
         self.resize(500, 700)
 
         # load default zarr path
-        # path = '/media/santiago/datos/sync/Tesis doctoral/Artículos propios/WR/wr_db_caracciolo.zarr'
-        # self.model.setZarrRoot(path)
-        # zarrExplorer.treeView.setRootIndex(self.model.index(path))
+        path = '/media/santiago/datos/db.zarr'
+        self.model.setZarrRoot(path)
+        zarrExplorer.treeView.setRootIndex(self.model.index(path))
 
     def screenshot(self):
         dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

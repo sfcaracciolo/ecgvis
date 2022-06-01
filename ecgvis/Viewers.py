@@ -199,6 +199,212 @@ class SpatioTemporalViewer(QDialog):
         
         return mesh
 
+class AtRtViewer(QDialog):
+    def __init__(self, model, vertices, faces, values, times, parent=None):
+        super().__init__(f=Qt.WindowMaximizeButtonHint, parent=parent)
+        self.setAttribute(Qt.WA_DeleteOnClose) # free memory on close
+
+        self.model = model
+        self.n_steps = 8
+        self.n_samples = values.shape[1]
+        self.min_time, self.max_time = times.min(), times.max()
+        self.min_value, self.max_value = values.min().round(decimals=2), values.max().round(decimals=2)
+        self.times = times.flatten()
+
+        self.meshdata = vp.geometry.MeshData(
+            vertices=vertices,
+            faces=faces,
+            vertex_values=self.times
+        )
+
+        self.values = values
+        self.previous_idx = 0
+        self.series = np.empty((self.n_samples, 2), dtype=np.float32)
+        self.series[:, 0] = np.arange(self.n_samples)
+
+        self.setup_canvas()
+        self.setup_ui()
+        self.setup_callbacks()
+
+        self.set_time(self.times[0])
+        self.set_marker(0)
+
+        self.vb1.camera.set_range()
+        self.vb2.camera.set_range(y=(self.min_value, self.max_value))
+
+        # self.set_range()
+
+    def setup_callbacks(self):
+        self.canvas.connect(self.on_key_press)
+        self.canvas.connect(self.on_mouse_release)
+        self.canvas.connect(self.on_mouse_press)
+
+    def on_mouse_press(self, e):
+        self.line.pick_cursor(self.canvas, e)
+
+
+    def set_time(self, idx):
+        self.sample_text.text = str(self.times[idx])
+        self.line.cursor.set_data(self.times[idx])
+
+    def set_series(self, idx):
+        self.series[:,1] = self.values[idx,:]
+        self.line.set_data(pos=self.series)
+
+    def on_mouse_release(self, e):
+        v = self.canvas.visual_at(e.pos)
+
+        if v == self.vb1:
+            idx = self.scatter.pick_marker(self.canvas, e)
+            if idx is not None:
+                self.set_marker(idx)
+
+        self.line.drop_cursor()
+
+    def set_marker(self, idx):
+        self.scatter.set_color(self.previous_idx)
+        self.scatter.set_color(idx, color=RED)
+        self.set_series(idx)
+        self.set_time(idx)
+        self.previous_idx = idx
+
+    def on_key_press(self, e):
+        key = e.key.name
+
+        if key == 'Escape':
+            self.close()
+
+        if key == '+':
+            self.n_steps += 1
+            cmap = self.get_cmap(self.n_steps)
+            self.cbar.cmap = cmap
+            self.cbar.clim = self.cbar.clim # this update the colorbar
+            self.mesh.cmap = cmap
+
+        if key == '-':
+            self.n_steps = self.n_steps - 1 if self.n_steps > 2 else 2
+            cmap = self.get_cmap(self.n_steps)
+            self.cbar.cmap = cmap
+            self.cbar.clim = self.cbar.clim # this update the colorbar
+            self.mesh.cmap = cmap
+
+        if key == 'N':
+            self.scatter.visible = not self.scatter.visible
+
+        if key == 'M':
+            self.wireframe_filter.enabled = not self.wireframe_filter.enabled
+            self.mesh.update()
+
+    def setup_ui(self):
+        self.setWindowTitle('AT/RT Viewer')
+
+        vlayout = QVBoxLayout()
+        vlayout.addWidget(self.canvas.native)
+
+        self.setLayout(vlayout)
+        self.show()
+
+    def get_cmap(self, steps):
+        base_cmap = vp.color.get_colormap('gist_rainbow')
+        colors = base_cmap[np.linspace(0., 1., num=steps)]
+        cmap = vp.color.Colormap(colors, interpolation='zero')
+        return cmap 
+
+    def setup_canvas(self):
+        self.canvas = scene.SceneCanvas(show=True, bgcolor='black', parent=self)
+        # self.canvas.measure_fps()
+        grid = self.canvas.central_widget.add_grid()
+
+        self.vb1 = grid.add_view(
+            row=0,
+            col=0,
+            border_color='white',
+            border_width=0.,
+            camera = 'arcball'
+
+        )
+        # scene.visuals.XYZAxis(parent=self.vb1.scene)
+
+        clim = (self.min_time, self.max_time)
+        cmap = self.get_cmap(self.n_steps)
+        self.cbar = self.setup_colorbar(cmap, clim)
+        self.mesh = self.setup_mesh(cmap, clim)
+        self.scatter = self.setup_markers()
+
+        self.vb1.add(self.mesh)
+        self.vb1.add(self.scatter)
+
+        self.wcbar = grid.add_widget(
+            widget=self.cbar,
+            row=0,
+            col=1,
+        )
+        self.wcbar.width_max = 60
+
+        self.vb2 = grid.add_view(
+            row=1,
+            col=0,
+            col_span=2,
+            border_color='white',
+            border_width=0.,
+            camera = 'panzoom'
+
+        )
+        self.vb2.height_max = 150
+        self.vb2.camera.interactive = False
+
+        self.line = self.setup_line()
+
+        self.sample_text = scene.visuals.Text(
+            color = 'white',
+            pos = (0, self.max_value/2)
+        )
+
+        self.vb2.add(self.line)
+        self.vb2.add(self.sample_text)
+
+    def setup_markers(self):
+        scatter = MarkersPicking(
+            self.meshdata.get_vertices(),
+            WHITE,
+            parent=self.vb1.scene,
+            size=7,
+            click_radius=5
+        )
+        return scatter
+
+    def setup_line(self):
+        line = LinePicking(
+            parent=self.vb2.scene
+        )
+        return line
+
+    def setup_colorbar(self, cmap, clim):
+        scene.widgets.colorbar.ColorBarVisual.text_padding_factor = 2.5
+        colorbar = scene.widgets.ColorBarWidget(
+            cmap,
+            'left',
+            label_color='white',
+            axis_ratio=0.05,
+            clim = clim,
+        )
+
+        return colorbar
+
+    def setup_mesh(self, cmap, clim):
+
+        mesh = scene.visuals.Mesh(
+            shading='flat',
+            meshdata = self.meshdata,
+        )
+        self.wireframe_filter = vp.visuals.filters.WireframeFilter(width=.1, color=WHITE)
+
+        mesh.cmap = cmap
+        mesh.clim = clim
+        mesh.attach(self.wireframe_filter)
+        
+        return mesh
+
 class TemporalViewer(QDialog):
 
     def __init__(self, model, matrices, colors, parent=None):

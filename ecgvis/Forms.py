@@ -381,6 +381,74 @@ class SpatioTemporalViewerForm(QGroupBox):
         if all(conds):
             self._viewers.append(SpatioTemporalViewer(self.model, self.nodes.get_tensor(), self.faces.get_tensor(), self.values.get_tensor()))
 
+class AtRtViewerForm(QGroupBox):
+    def __init__(self, model, parent=None) -> None:
+        super().__init__(parent=parent)
+
+        self.model = model
+        self._viewers = []
+        self.setup_ui()
+        self.setup_callbacks()
+
+        self.set_test_tensors()
+
+    def set_test_tensors(self):
+        self.toggle_visibility()
+        self.nodes.path.setText('sinus_dog/data/heart/nodes')
+        self.nodes.sliding.setText(':,:')
+        self.faces.path.setText('sinus_dog/data/heart/faces')
+        self.faces.sliding.setText(':,:')
+        self.values.path.setText('sinus_dog/results/sols/tkh0')
+        self.values.sliding.setText(':,:,23')
+        self.times.path.setText('sinus_dog/results/ats/tkh0')
+        self.times.sliding.setText(':,23')
+
+    def setup_callbacks(self):
+        self.box_buttons.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+
+    def toggle_visibility(self):
+        if self.isHidden():
+            self.show()
+        else:
+            self.hide()
+
+    def setup_ui(self):
+        
+        self.nodes = TensorWidget(self.model)
+        self.faces = TensorWidget(self.model)
+        self.values = TensorWidget(self.model)
+        self.times = TensorWidget(self.model)
+        self.box_buttons = QDialogButtonBox(QDialogButtonBox.Apply)# | QDialogButtonBox.Cancel)
+        
+        layout = QFormLayout()
+        layout.addRow('Nodes', self.nodes)
+        layout.addRow('Faces', self.faces)
+        layout.addRow('Values', self.values)
+        layout.addRow('Times', self.times)
+        layout.addWidget(self.box_buttons)
+        # layout.addStretch(1)
+        self.setLayout(layout)
+        self.hide()
+
+    def apply(self):
+        conds = [
+            self.nodes.path.text(),
+            self.faces.path.text(),
+            self.values.path.text(),
+            self.times.path.text()
+        ]
+        if all(conds):
+            self._viewers.append(
+                AtRtViewer(
+                    self.model,
+                    self.nodes.get_tensor(),
+                    self.faces.get_tensor(),
+                    self.values.get_tensor(),
+                    self.times.get_tensor()
+                )
+            )
+
+
 # class SparseDictBuilderForm(TaskForm):
     
 #     def __init__(self, model, parent=None) -> None:
