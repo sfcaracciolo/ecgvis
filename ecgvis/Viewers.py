@@ -70,6 +70,7 @@ class SpatioTemporalViewer(QDialog):
         if v == self.vb1:
             idx = self.scatter.pick_marker(self.canvas, e)
             if idx is not None:
+                print(idx)
                 self.set_marker(idx)
 
         self.line.drop_cursor()
@@ -96,14 +97,14 @@ class SpatioTemporalViewer(QDialog):
         self.show()
 
     def setup_canvas(self):
-        self.canvas = scene.SceneCanvas(show=True, bgcolor='black', parent=self)
+        self.canvas = scene.SceneCanvas(show=True, bgcolor=BG_COLOR, parent=self)
         # self.canvas.measure_fps()
         grid = self.canvas.central_widget.add_grid()
 
         self.vb1 = grid.add_view(
             row=0,
             col=0,
-            border_color='white',
+            border_color=BG_COLOR_CONTRAST,
             border_width=0.,
             camera = 'arcball'
 
@@ -131,7 +132,7 @@ class SpatioTemporalViewer(QDialog):
             row=1,
             col=0,
             col_span=2,
-            border_color='white',
+            border_color=BG_COLOR_CONTRAST,
             border_width=0.,
             camera = 'panzoom'
 
@@ -142,7 +143,7 @@ class SpatioTemporalViewer(QDialog):
         self.line = self.setup_line()
 
         self.sample_text = scene.visuals.Text(
-            color = 'white',
+            color = BG_COLOR_CONTRAST,
             pos = (0, self.max_value/2)
         )
 
@@ -152,7 +153,7 @@ class SpatioTemporalViewer(QDialog):
     def setup_markers(self):
         scatter = MarkersPicking(
             self.meshdata.get_vertices(),
-            WHITE,
+            BG_COLOR_CONTRAST,
             parent=self.vb1.scene,
             size=7,
             click_radius=5
@@ -178,7 +179,7 @@ class SpatioTemporalViewer(QDialog):
         colorbar = scene.widgets.ColorBarWidget(
             cmap,
             'left',
-            label_color='white',
+            label_color=BG_COLOR_CONTRAST,
             axis_ratio=0.05,
             clim = clim,
         )
@@ -191,7 +192,7 @@ class SpatioTemporalViewer(QDialog):
             shading='flat',
             meshdata = self.meshdata,
         )
-        wireframe_filter = vp.visuals.filters.WireframeFilter(width=.1, color=WHITE)
+        wireframe_filter = vp.visuals.filters.WireframeFilter(width=.1, color=BG_COLOR_CONTRAST)
 
         mesh.cmap = cmap
         mesh.clim = clim
@@ -210,6 +211,7 @@ class AtRtViewer(QDialog):
         self.min_time, self.max_time = times.min(), times.max()
         self.min_value, self.max_value = values.min().round(decimals=2), values.max().round(decimals=2)
         self.times = times.flatten()
+        self.center = np.mean(vertices, axis = 0)
 
         self.meshdata = vp.geometry.MeshData(
             vertices=vertices,
@@ -236,12 +238,18 @@ class AtRtViewer(QDialog):
 
     def setup_callbacks(self):
         self.canvas.connect(self.on_key_press)
+        self.canvas.connect(self.on_mouse_move)
         self.canvas.connect(self.on_mouse_release)
         self.canvas.connect(self.on_mouse_press)
 
+    def on_mouse_move(self, e):
+        if e.is_dragging:
+            self.azimuth_label.text = f'A : {self.vb1.camera.azimuth:.1f}'
+            self.elevation_label.text = f'E : {self.vb1.camera.elevation:.1f}',
+
+
     def on_mouse_press(self, e):
         self.line.pick_cursor(self.canvas, e)
-
 
     def set_time(self, idx):
         self.sample_text.text = str(self.times[idx])
@@ -295,6 +303,25 @@ class AtRtViewer(QDialog):
             self.wireframe_filter.enabled = not self.wireframe_filter.enabled
             self.mesh.update()
 
+        if key == 'B':
+            self.wcbar.visible = not self.wcbar.visible
+
+        if key == 'V':
+            self.vb2.visible = not self.vb2.visible
+
+        if key == 'C':
+            self.tool_bar_grid.visible = not self.tool_bar_grid.visible
+
+        if key == 'S':
+            dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            img = self.screen().grabWindow(self.winId())
+            # img.save(f'screenshots/{dt}.ppm', 'ppm', quality=100)
+            img.save(f'screenshots/{dt}.bmp', 'bmp', quality=100)
+            # img.save(f'screenshots/{dt}.pgm', 'pgm', quality=100)
+
+            # img = vp.gloo.util._screenshot((0, 0, self.canvas.size[0], self.canvas.size[1]))
+            # vp.io.imsave(f'vp_{dt}', img, format='eps')
+
     def setup_ui(self):
         self.setWindowTitle('AT/RT Viewer')
 
@@ -305,25 +332,70 @@ class AtRtViewer(QDialog):
         self.show()
 
     def get_cmap(self, steps):
+        # base_cmap = vp.color.get_colormap('Greys')
         base_cmap = vp.color.get_colormap('gist_rainbow')
         colors = base_cmap[np.linspace(0., 1., num=steps)]
         cmap = vp.color.Colormap(colors, interpolation='zero')
         return cmap 
 
     def setup_canvas(self):
-        self.canvas = scene.SceneCanvas(show=True, bgcolor='black', parent=self)
+        self.canvas = scene.SceneCanvas(show=True, bgcolor=BG_COLOR, parent=self)
         # self.canvas.measure_fps()
         grid = self.canvas.central_widget.add_grid()
 
         self.vb1 = grid.add_view(
             row=0,
-            col=0,
-            border_color='white',
+            col=1,
+            border_color=BG_COLOR_CONTRAST,
             border_width=0.,
-            camera = 'arcball'
+            camera = scene.cameras.TurntableCamera(fov=0, elevation=0, azimuth=90)
 
         )
-        # scene.visuals.XYZAxis(parent=self.vb1.scene)
+
+        self.azimuth_label = scene.widgets.Label(
+            f'A : {self.vb1.camera.azimuth:.1f}',
+            anchor_x = 'center',
+            color = BG_COLOR_CONTRAST,
+        )
+
+        self.elevation_label = scene.widgets.Label(
+            f'E : {self.vb1.camera.elevation:.1f}',
+            anchor_x = 'center',
+            color = BG_COLOR_CONTRAST,
+        )
+
+        self.axis = scene.visuals.XYZAxis(
+            # color = BG_COLOR_CONTRAST,
+            # width = 10
+        )
+
+
+        self.tool_bar_grid = grid.add_grid(
+            row=0,
+            col=0,
+            border_color=BG_COLOR_CONTRAST,
+            border_width=0.,
+        )
+        self.tool_bar_grid.width_max = 100
+
+        self.tool_bar_grid.add_widget(
+            widget=self.azimuth_label,
+            row=0,
+            col=0,
+        )
+
+        self.tool_bar_grid.add_widget(
+            widget=self.elevation_label,
+            row=1,
+            col=0,
+        )
+
+
+        self.tool_bar_grid.add_widget(
+            row=3,
+            col=0,
+            row_span=9
+        )
 
         clim = (self.min_time, self.max_time)
         cmap = self.get_cmap(self.n_steps)
@@ -334,18 +406,31 @@ class AtRtViewer(QDialog):
         self.vb1.add(self.mesh)
         self.vb1.add(self.scatter)
 
+        self.vb3 = self.tool_bar_grid.add_view(
+            row=2,
+            col=0,
+            border_color=BG_COLOR_CONTRAST,
+            border_width=.0,
+            camera = 'turntable',
+            row_span=2
+
+        )
+
+        self.vb3.add(self.axis)
+        self.vb3.camera.link(self.vb1.camera, props=('azimuth', 'elevation'))
+
         self.wcbar = grid.add_widget(
             widget=self.cbar,
             row=0,
-            col=1,
+            col=2,
         )
         self.wcbar.width_max = 60
 
         self.vb2 = grid.add_view(
             row=1,
             col=0,
-            col_span=2,
-            border_color='white',
+            col_span=3,
+            border_color=BG_COLOR_CONTRAST,
             border_width=0.,
             camera = 'panzoom'
 
@@ -356,7 +441,7 @@ class AtRtViewer(QDialog):
         self.line = self.setup_line()
 
         self.sample_text = scene.visuals.Text(
-            color = 'white',
+            color = BG_COLOR_CONTRAST,
             pos = (0, self.max_value/2)
         )
 
@@ -366,7 +451,7 @@ class AtRtViewer(QDialog):
     def setup_markers(self):
         scatter = MarkersPicking(
             self.meshdata.get_vertices(),
-            WHITE,
+            BG_COLOR_CONTRAST,
             parent=self.vb1.scene,
             size=7,
             click_radius=5
@@ -384,7 +469,7 @@ class AtRtViewer(QDialog):
         colorbar = scene.widgets.ColorBarWidget(
             cmap,
             'left',
-            label_color='white',
+            label_color=BG_COLOR_CONTRAST,
             axis_ratio=0.05,
             clim = clim,
         )
@@ -396,8 +481,9 @@ class AtRtViewer(QDialog):
         mesh = scene.visuals.Mesh(
             shading='flat',
             meshdata = self.meshdata,
+            color=BG_COLOR_CONTRAST
         )
-        self.wireframe_filter = vp.visuals.filters.WireframeFilter(width=.1, color=WHITE)
+        self.wireframe_filter = vp.visuals.filters.WireframeFilter(width=1., color=BG_COLOR_CONTRAST)
 
         mesh.cmap = cmap
         mesh.clim = clim
@@ -489,7 +575,7 @@ class TemporalViewer(QDialog):
         self.text_view = self.grid.add_view(
             row=0,
             col=0,
-            border_color='white',
+            border_color=BG_COLOR_CONTRAST,
             border_width=0.
         )
 
@@ -501,7 +587,7 @@ class TemporalViewer(QDialog):
             scene.visuals.Text(
                 text=f'{i}',
                 pos=(0, -i*self.offset_series),
-                color='white',
+                color=BG_COLOR_CONTRAST,
                 font_size=9.,
                 parent=self.text_view.scene
             )
@@ -515,12 +601,12 @@ class TemporalViewer(QDialog):
             pos=ch_markers,
             symbol='arrow',
             size=10,
-            face_color='white',
+            face_color=BG_COLOR_CONTRAST,
             parent=self.text_view.scene
         )
 
     def setup_canvas(self):
-        self.canvas = scene.SceneCanvas(show=True, bgcolor='black', parent=self)
+        self.canvas = scene.SceneCanvas(show=True, bgcolor=BG_COLOR, parent=self)
         # self.canvas.measure_fps()
         self.grid = self.canvas.central_widget.add_grid()
         self.setup_panel()
@@ -531,7 +617,7 @@ class TemporalViewer(QDialog):
         self.view = self.grid.add_view(
             row=0,
             col=1,
-            border_color='white',
+            border_color=BG_COLOR_CONTRAST,
             border_width=0.
         )
         self.view.interactive = False
@@ -755,7 +841,7 @@ class FPTViewer(QDialog):
         self.setup_callbacks()
 
     def setup_canvas(self):
-        self.canvas = scene.SceneCanvas(show=True, bgcolor='black', size=(800,200), parent=self)
+        self.canvas = scene.SceneCanvas(show=True, bgcolor=BG_COLOR, size=(800,200), parent=self)
         # self.canvas.measure_fps()
         self.view = self.canvas.central_widget.add_view()
         self.view.camera = 'panzoom'
