@@ -58,7 +58,7 @@ class RegionsLine(scene.Line):
 class LinePicking(scene.Line):
     def __init__(self, parent=None) -> None:
 
-        super().__init__(color='white', parent=parent)
+        super().__init__(color=BG_COLOR_CONTRAST, parent=parent)
         
         cursor = scene.visuals.InfiniteLine(
             pos=0.,
@@ -161,7 +161,7 @@ class MarkersPicking(scene.Markers):
     whenever the user clicks a marker (or at most `click_radius` pixels next to
     a marker).
     """
-    def __init__(self, positions, base_color, symbol='o', size=4.5, click_radius=2, edge_width=0., scaling=False, parent=None) -> None:
+    def __init__(self, positions, base_color, symbol='o', size=4.5, click_radius=2, edge_width=.0, scaling=False, parent=None) -> None:
         super().__init__(parent=parent)
 
         ids = np.arange(1, len(positions) + 1, dtype=np.uint32).view(np.uint8)
@@ -173,7 +173,7 @@ class MarkersPicking(scene.Markers):
         self.click_radius = click_radius
         self.n_points = positions.shape[0]
         self.colors = np.repeat(base_color[np.newaxis,:], self.n_points, axis=0)
-        self.kwargs = dict(symbol=symbol, size=size, edge_color=None, edge_width=edge_width, scaling=scaling)
+        self.kwargs = dict(symbol=symbol, size=size, edge_color=BG_COLOR_CONTRAST, edge_width=edge_width, scaling=scaling)
         self.ids = np.divide(ids, 255, dtype=np.float32)
         self.freeze()
         # based on https://github.com/vispy/vispy/issues/1189#issuecomment-198597473
