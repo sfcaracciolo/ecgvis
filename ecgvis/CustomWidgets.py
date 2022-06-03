@@ -90,7 +90,7 @@ class TensorWidget(QWidget):
 class LineEditSliding(QLineEdit):
     def __init__(self):
         super().__init__(parent=None)
-        rx = QRegularExpression(r'(((\d*:?\d*)|(\[(\d+,?)+\])),)+') # https://regexper.com/
+        rx = QRegularExpression(r'(((\d*:{0,2}\d*)|(\[(\d+,?)+\])),)+') # https://regexper.com/
         validator = QRegularExpressionValidator(rx)
         self.setValidator(validator)
 

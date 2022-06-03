@@ -47,6 +47,7 @@ class ecgvis(QMainWindow):
             (MatrixViewerForm(self.model), 'Matrix Viewer'),
             (SpatioTemporalViewerForm(self.model), 'SpatioTemporal Viewer'),
             (AtRtViewerForm(self.model), 'AT/RT Viewer'),
+            (IsoLinesViewerForm(self.model), 'Isolines Viewer'),
             # (ExperimentForm(self.model), 'Experiment Analizer'),
             # (InverseProblemForm(self.model), 'Inverse Problem'),
             # (NearestNodesForm(self.model), 'Nearest Nodes'),

@@ -1,3 +1,4 @@
+from turtle import width
 import vispy as vp
 from vispy import visuals
 from vispy.scene.widgets import widget
@@ -17,6 +18,89 @@ import pathlib
 from datetime import datetime
 import ecg_tools
 import fpt_tools
+
+
+class IsolinesViewer(QDialog):
+    def __init__(self, model, vertices, faces, values, levels, parent=None):
+        super().__init__(f=Qt.WindowMaximizeButtonHint, parent=parent)
+        self.setAttribute(Qt.WA_DeleteOnClose) # free memory on close
+
+        self.model = model
+        self.n_samples = values.shape[1]
+        self.vertices = vertices
+        self.faces = faces
+        self.values = values.flatten()
+        # self.levels = levels.flatten()
+        distinc_values = np.unique(self.values)
+        n_values = distinc_values.size
+        n_levels = 10
+        self.levels = distinc_values[::round(n_values/n_levels)]
+        print(distinc_values)
+        print(self.levels)
+        print(10*"=")
+        self.previous_idx = 0
+        self.series = np.empty((self.n_samples, 2), dtype=np.float32)
+        self.series[:, 0] = np.arange(self.n_samples)
+
+        self.setup_canvas()
+        self.setup_callbacks()
+        self.setup_ui()
+
+        aux = np.diff(self.mesh._vl.flatten(), prepend=0, append=0).astype(np.int32)
+        print(aux[aux != 0])
+            # , self._c, self._vl, self._li
+        self.vb1.camera.set_range()
+
+    def setup_callbacks(self):
+        self.canvas.connect(self.on_key_press)
+
+    def on_key_press(self, e):
+        key = e.key.name
+
+        if key == 'Escape':
+            self.close()
+
+    def setup_ui(self):
+        self.setWindowTitle('Isolines Viewer')
+
+        vlayout = QVBoxLayout()
+        vlayout.addWidget(self.canvas.native)
+
+        self.setLayout(vlayout)
+        self.show()
+
+    def setup_canvas(self):
+        self.canvas = scene.SceneCanvas(show=True, bgcolor=BG_COLOR, parent=self)
+        # self.canvas.measure_fps()
+        grid = self.canvas.central_widget.add_grid()
+
+        self.vb1 = grid.add_view(
+            row=0,
+            col=0,
+            border_color=BG_COLOR_CONTRAST,
+            border_width=0.,
+            camera = 'arcball'
+
+        )
+        self.mesh = self.setup_mesh()
+        self.vb1.add(self.mesh)
+
+    def setup_mesh(self):
+
+        base_cmap = vp.color.get_colormap('gist_rainbow')
+        colors = base_cmap[np.linspace(0., 1., num=self.levels.size)]
+        mesh = scene.visuals.Isoline(
+            vertices = self.vertices,
+            tris = self.faces,
+            data = self.values,
+            levels = self.levels,
+            color_lev = colors ,# BG_COLOR_CONTRAST # colors,
+            width=5,
+        )
+
+
+        return mesh
+
 
 class SpatioTemporalViewer(QDialog):
     def __init__(self, model, vertices, faces, values, parent=None):
