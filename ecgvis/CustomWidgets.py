@@ -74,6 +74,7 @@ class TensorWidget(QWidget):
         self.transpose = QCheckBox()
 
         layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
         layout.addWidget(self.path, stretch=4)
         layout.addWidget(self.sliding, stretch=2)
         layout.addWidget(self.transpose)

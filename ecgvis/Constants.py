@@ -11,5 +11,8 @@ LIGHT_BLUE = np.array((0.,0.,1.,.2), dtype=np.float32)
 WHITE = np.array((1.,1.,1.,1.), dtype=np.float32)
 BLACK = np.array((0.,0.,0.,1.), dtype=np.float32)
 
-BG_COLOR = WHITE
-BG_COLOR_CONTRAST = BLACK
+# BG_COLOR = WHITE
+# BG_COLOR_CONTRAST = BLACK
+
+BG_COLOR = BLACK
+BG_COLOR_CONTRAST = WHITE

@@ -1,24 +1,176 @@
-from turtle import width
 import vispy as vp
 from vispy import visuals
 from vispy.scene.widgets import widget
 from ecgvis.Views import FPTView, MatrixTableView
-from typing import Optional
 from ecgvis.CustomWidgets import CursorsWidget, LineEditWithDrop
 from ecgvis.Models import CursorsModel, FPTModel, MatrixModel
 from ecgvis.Constants import *
 from vispy.visuals.transforms.linear import STTransform
 from ecgvis.CustomVisuals import Isolines, LinePicking, Lines, MarkersPicking, RegionsLine
 from PySide6.QtCore import QSize, QSortFilterProxyModel, Qt
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QSlider, QDialog, QHBoxLayout, QPushButton, QVBoxLayout
 import numpy as np
-from superqt import QRangeSlider
+import scipy as sp
+from superqt import QRangeSlider, QLabeledDoubleSlider, QLabeledSlider
 from vispy import scene
-import pathlib
 from datetime import datetime
 import ecg_tools
 import fpt_tools
+from collections import defaultdict
+import open3d as o3d
+class AlphaShapesViewer(QDialog):
+    def __init__(self, model, nodes, values, parent=None):
+        super().__init__(f=Qt.WindowMaximizeButtonHint, parent=parent)
+        self.setAttribute(Qt.WA_DeleteOnClose) # free memory on close
 
+        self.model = model
+        self.nodes = nodes
+        self.values = values
+
+        self.pcd = o3d.geometry.PointCloud()
+        self.pcd.points = o3d.utility.Vector3dVector(nodes)
+        self.tetra_mesh, self.pt_map = o3d.geometry.TetraMesh.create_from_point_cloud(self.pcd) # convex hull
+
+        self.tetra = None
+        
+        self.setup_canvas()
+        self.setup_ui()
+        self.setup_callbacks()
+        self.vb1.camera.set_range()
+        self.set_alpha(values[0])
+
+    def setup_callbacks(self):
+        self.canvas.connect(self.on_key_press)
+        self.hslider.valueChanged.connect(self.set_alpha)
+
+    def setup_ui(self):
+        self.setWindowTitle('Alpha Shapes Viewer')
+
+        self.hslider = QLabeledDoubleSlider(Qt.Orientation.Horizontal, parent=self)
+        self.hslider.setRange(self.values[0], self.values[-1])
+        
+        vlayout = QVBoxLayout()
+        vlayout.addWidget(self.canvas.native)
+        vlayout.addWidget(self.hslider)
+
+        self.setLayout(vlayout)
+        self.show()
+    
+    def setup_canvas(self):
+        self.canvas = scene.SceneCanvas(show=True, bgcolor=BG_COLOR, parent=self)
+        # self.canvas.measure_fps()
+        grid = self.canvas.central_widget.add_grid()
+
+        self.vb1 = grid.add_view(
+            row=0,
+            col=0,
+            border_color=BG_COLOR_CONTRAST,
+            border_width=0.,
+            camera = 'arcball'
+
+        )
+
+        self.meshdata = vp.geometry.MeshData(
+            vertices=self.nodes,
+            faces=np.array([[0,1,2]], dtype=np.int32)
+        )
+
+        self.scatter = scene.visuals.Markers(
+            pos=self.nodes,
+            # pos=np.zeros((1,3), dtype=np.float32),
+            size=10,
+            face_color=RED,
+            edge_width=0,
+        )
+
+        self.mesh = scene.visuals.Mesh(
+            # shading='flat',
+            meshdata = self.meshdata,
+        )
+        wireframe_filter = vp.visuals.filters.WireframeFilter(width=.75, color=BLACK)
+        self.mesh.attach(wireframe_filter)
+        
+        self.vb1.add(self.mesh)
+        self.vb1.add(self.scatter)
+
+    def set_alpha(self, value):
+        try:
+            mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(self.pcd, value, self.tetra_mesh, self.pt_map)
+        except IndexError:
+            print('ERROR')
+        else:
+        # self.vertices, self.edges, self.faces = self.alpha_shape_3D(self.nodes, value)
+        # if self.faces.shape[0] > 0:
+            mesh.orient_triangles()
+            self.faces = np.asarray(mesh.triangles)
+            self.vertices = np.asarray(mesh.vertices)
+            # if self.has_outliers():
+            #     self.outliers = np.setd
+            # self.scatter.set_data(self.outliers)
+            self.meshdata.set_vertices(self.vertices)
+            self.meshdata.set_faces(self.faces)
+            self.meshdata.set_face_colors(np.broadcast_to(WHITE, (self.faces.shape[0], 4)))
+            self.mesh.mesh_data_changed()
+            # print(f'Has outliers: {self.has_outliers()} Is closed: {self.is_closed()}')
+
+    def on_key_press(self, e):
+        key = e.key.name
+
+        if key == 'Escape':
+            self.close()
+
+    def has_outliers(self): 
+        return self.nodes.shape[0] - self.vertices.size
+
+    def is_closed(self):
+        return self.vertices.size - self.edges.shape[0] + self.faces.shape[0] == 2
+    
+    def alpha_shape_3D(self, pos, alpha):
+        """
+        Compute the alpha shape (concave hull) of a set of 3D points.
+        Parameters:
+            pos - np.array of shape (n,3) points.
+            alpha - alpha value.
+        return
+            outer surface vertex indices, edge indices, and triangle indices
+        """
+        if self.tetra is None:
+            self.tetra = sp.spatial.Delaunay(pos)
+            # Find radius of the circumsphere.
+            # By definition, radius of the sphere fitting inside the tetrahedral needs 
+            # to be smaller than alpha value
+            # http://mathworld.wolfram.com/Circumsphere.html
+            tetrapos = np.take(pos,self.tetra.vertices,axis=0)
+            normsq = np.sum(tetrapos**2,axis=2)[:,:,None]
+            ones = np.ones((tetrapos.shape[0],tetrapos.shape[1],1))
+            a = np.linalg.det(np.concatenate((tetrapos,ones),axis=2))
+            Dx = np.linalg.det(np.concatenate((normsq,tetrapos[:,:,[1,2]],ones),axis=2))
+            Dy = -np.linalg.det(np.concatenate((normsq,tetrapos[:,:,[0,2]],ones),axis=2))
+            Dz = np.linalg.det(np.concatenate((normsq,tetrapos[:,:,[0,1]],ones),axis=2))
+            c = np.linalg.det(np.concatenate((normsq,tetrapos),axis=2))
+            self.r = np.sqrt(Dx**2+Dy**2+Dz**2-4*a*c)/(2*np.abs(a))
+
+        # Find tetrahedrals
+        tetras = self.tetra.vertices[self.r<alpha,:]
+        # triangles
+        TriComb = np.array([(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)])
+        Triangles = tetras[:,TriComb].reshape(-1,3)
+        Triangles = np.sort(Triangles,axis=1)
+        
+        # Remove triangles that occurs twice, because they are within shapes
+        TrianglesDict = defaultdict(int)
+        for tri in Triangles:
+            TrianglesDict[tuple(tri)] += 1
+            Triangles=np.array([tri for tri in TrianglesDict if TrianglesDict[tri] ==1])
+        # #edges
+        EdgeComb=np.array([(0, 1), (0, 2), (1, 2)])
+        Edges=Triangles[:,EdgeComb].reshape(-1,2)
+        Edges=np.sort(Edges,axis=1)
+        Edges=np.unique(Edges,axis=0)
+
+        Vertices = np.unique(Edges)
+        return Vertices,Edges,Triangles
+        # return None, None ,Triangles
 
 class IsolinesViewer(QDialog):
     def __init__(self, model, vertices, faces, values, levels, parent=None):
@@ -29,11 +181,18 @@ class IsolinesViewer(QDialog):
         self.n_samples = values.shape[1]
         self.vertices = vertices
         self.faces = faces
+
+        self.meshdata = vp.geometry.MeshData(
+            vertices=vertices,
+            faces=faces,
+        )
+
+
         self.values = values.flatten()
         # self.levels = levels.flatten()
         distinc_values = np.unique(self.values)
         n_values = distinc_values.size
-        n_levels = 10
+        n_levels = 5
         self.levels = distinc_values[::round(n_values/n_levels)]
         print(distinc_values)
         print(self.levels)
@@ -46,8 +205,8 @@ class IsolinesViewer(QDialog):
         self.setup_callbacks()
         self.setup_ui()
 
-        aux = np.diff(self.mesh._vl.flatten(), prepend=0, append=0).astype(np.int32)
-        print(aux[aux != 0])
+        # aux = np.diff(self.mesh._vl.flatten(), prepend=0, append=0).astype(np.int32)
+        # print(aux[aux != 0])
             # , self._c, self._vl, self._li
         self.vb1.camera.set_range()
 
@@ -82,25 +241,39 @@ class IsolinesViewer(QDialog):
             camera = 'arcball'
 
         )
+        self.isolines = self.setup_isolines()
         self.mesh = self.setup_mesh()
+        self.vb1.add(self.isolines)
         self.vb1.add(self.mesh)
 
     def setup_mesh(self):
+        mesh = scene.visuals.Mesh(
+            # shading='flat',
+            vertices = self.vertices,
+            faces = self.faces,
+            # meshdata = self.meshdata,
+            face_colors = np.broadcast_to(BG_COLOR, (self.faces.shape[0], 4))
+        )
+        wireframe_filter = vp.visuals.filters.WireframeFilter(width=.5, color=np.array((0.,0.,0.,1.), dtype=np.float32))
+        mesh.attach(wireframe_filter)
+        
+        return mesh
 
-        base_cmap = vp.color.get_colormap('gist_rainbow')
-        colors = base_cmap[np.linspace(0., 1., num=self.levels.size)]
-        mesh = scene.visuals.Isoline(
+    def setup_isolines(self):
+
+        # base_cmap = vp.color.get_colormap('gist_rainbow')
+        # colors = base_cmap[np.linspace(0., 1., num=self.levels.size)]
+        isolines = scene.visuals.Isoline(
             vertices = self.vertices,
             tris = self.faces,
             data = self.values,
             levels = self.levels,
-            color_lev = colors ,# BG_COLOR_CONTRAST # colors,
-            width=5,
+            color_lev = BG_COLOR_CONTRAST, # colors,
+            width=6,
         )
 
 
-        return mesh
-
+        return isolines
 
 class SpatioTemporalViewer(QDialog):
     def __init__(self, model, vertices, faces, values, parent=None):
@@ -109,8 +282,11 @@ class SpatioTemporalViewer(QDialog):
 
         self.model = model
         self.n_samples = values.shape[1]
-        self.min_value, self.max_value = values.min().round(decimals=2), values.max().round(decimals=2)
 
+        # self.max_value = max(abs(values.min()), abs(values.max())).round(decimals=2)
+        # self.min_value = -self.max_value
+        self.min_value, self.max_value = values.min().round(decimals=2), values.max().round(decimals=2)
+        
         self.meshdata = vp.geometry.MeshData(
             vertices=vertices,
             faces=faces,
@@ -280,6 +456,198 @@ class SpatioTemporalViewer(QDialog):
 
         mesh.cmap = cmap
         mesh.clim = clim
+        mesh.attach(wireframe_filter)
+        
+        return mesh
+class LambdaViewer(QDialog):
+    def __init__(self, model, vertices, faces, values, parent=None):
+        super().__init__(f=Qt.WindowMaximizeButtonHint, parent=parent)
+        self.setAttribute(Qt.WA_DeleteOnClose) # free memory on close
+
+        self.model = model
+        self.n_lambdas, _, self.n_samples = values.shape
+
+        self.meshdata = vp.geometry.MeshData(
+            vertices=vertices,
+            faces=faces,
+            )
+
+        self.values = values
+        self.idx_samples = 0
+        self.idx_lambda = 0
+        self.previous_idx = 0
+        self.series = np.empty((self.n_samples, 2), dtype=np.float32)
+        self.series[:, 0] = np.arange(self.n_samples)
+
+        self.setup_canvas()
+        self.setup_ui()
+        self.setup_callbacks()
+
+        self.set_lambda(0)
+        self.set_marker(0)
+
+        self.vb1.camera.set_range()
+
+    def setup_callbacks(self):
+        self.canvas.connect(self.on_key_press)
+        self.canvas.connect(self.on_mouse_move)
+        self.canvas.connect(self.on_mouse_release)
+        self.canvas.connect(self.on_mouse_press)
+        self.hslider.valueChanged.connect(self.set_lambda)
+
+    def set_time(self, idx):
+        self.idx_samples = idx
+        self.sample_text.text = str(idx)
+        self.meshdata.set_vertex_values(self.values[self.idx_lambda,:,idx])
+        self.mesh.mesh_data_changed()
+
+    def set_lambda(self, idx):
+        self.idx_lambda = idx
+        min_value, max_value = self.values[idx].min(), self.values[idx].max()
+        self.cbar.clim = (min_value.round(decimals=2), max_value.round(decimals=2))
+        self.mesh.clim = (min_value, max_value)
+        self.sample_text.pos = (0, max_value/2)
+        self.vb2.camera.set_range(x=(0, self.n_samples), y=self.mesh.clim)
+        self.set_time(self.idx_samples)
+        self.set_series(self.previous_idx)
+
+    def set_series(self, idx):
+        self.series[:,1] = self.values[self.idx_lambda, idx,:]
+        self.line.set_data(pos=self.series)
+
+    def on_mouse_release(self, e):
+        v = self.canvas.visual_at(e.pos)
+
+        if v == self.vb1:
+            idx = self.scatter.pick_marker(self.canvas, e)
+            if idx is not None:
+                print(idx)
+                self.set_marker(idx)
+
+        self.line.drop_cursor()
+
+    def set_marker(self, idx):
+        self.scatter.set_color(self.previous_idx)
+        self.scatter.set_color(idx, color=RED)
+        self.set_series(idx)
+        self.previous_idx = idx
+
+    def on_key_press(self, e):
+        key = e.key.name
+
+        if key == 'Escape':
+            self.close()
+
+    def setup_ui(self):
+        self.setWindowTitle('Lambda Viewer')
+
+        self.hslider = QLabeledSlider(Qt.Orientation.Horizontal)
+        self.hslider.setMinimum(0)
+        self.hslider.setMaximum(self.n_lambdas-1)
+        
+        vlayout = QVBoxLayout()
+        vlayout.addWidget(self.canvas.native)
+        vlayout.addWidget(self.hslider)
+
+        self.setLayout(vlayout)
+        self.show()
+
+    def setup_canvas(self):
+        self.canvas = scene.SceneCanvas(show=True, bgcolor=BG_COLOR, parent=self)
+        # self.canvas.measure_fps()
+        grid = self.canvas.central_widget.add_grid()
+
+        self.vb1 = grid.add_view(
+            row=0,
+            col=0,
+            border_color=BG_COLOR_CONTRAST,
+            border_width=0.,
+            camera = 'arcball'
+
+        )
+        # scene.visuals.XYZAxis(parent=self.vb1.scene)
+
+        cmap = vp.color.get_colormap('turbo')
+
+        self.cbar = self.setup_colorbar(cmap)
+        self.mesh = self.setup_mesh(cmap)
+        self.scatter = self.setup_markers()
+
+        self.vb1.add(self.mesh)
+        self.vb1.add(self.scatter)
+
+        wcbar = grid.add_widget(
+            widget=self.cbar,
+            row=0,
+            col=1,
+        )
+        wcbar.width_max = 60
+
+        self.vb2 = grid.add_view(
+            row=1,
+            col=0,
+            col_span=2,
+            border_color=BG_COLOR_CONTRAST,
+            border_width=0.,
+            camera = 'panzoom'
+
+        )
+        self.vb2.height_max = 150
+        self.vb2.camera.interactive = False
+
+        self.line = self.setup_line()
+
+        self.sample_text = scene.visuals.Text(
+            color = BG_COLOR_CONTRAST,
+        )
+
+        self.vb2.add(self.line)
+        self.vb2.add(self.sample_text)
+
+    def setup_markers(self):
+        scatter = MarkersPicking(
+            self.meshdata.get_vertices(),
+            BG_COLOR_CONTRAST,
+            parent=self.vb1.scene,
+            size=7,
+            click_radius=5
+        )
+        return scatter
+
+    def on_mouse_move(self, e):
+        pos = self.line.move_cursor(self.canvas, e)
+        if pos is not None:
+            self.set_time(pos)
+
+    def on_mouse_press(self, e):
+        self.line.pick_cursor(self.canvas, e)
+
+    def setup_line(self):
+        line = LinePicking(
+            parent=self.vb2.scene
+        )
+        return line
+
+    def setup_colorbar(self, cmap):
+        scene.widgets.colorbar.ColorBarVisual.text_padding_factor = 2.5
+        colorbar = scene.widgets.ColorBarWidget(
+            cmap,
+            'left',
+            label_color=BG_COLOR_CONTRAST,
+            axis_ratio=0.05,
+        )
+
+        return colorbar
+
+    def setup_mesh(self, cmap):
+
+        mesh = scene.visuals.Mesh(
+            shading='flat',
+            meshdata = self.meshdata,
+        )
+        wireframe_filter = vp.visuals.filters.WireframeFilter(width=.1, color=BG_COLOR_CONTRAST)
+
+        mesh.cmap = cmap
         mesh.attach(wireframe_filter)
         
         return mesh
@@ -891,6 +1259,125 @@ class MatrixViewer(QDialog):
             self.model.zarr_root.create_dataset(path, data=array)
         except:
             print('Dataset already exists.')
+
+class MeshViewer(QDialog):
+    def __init__(self, model, vertices, faces, parent=None):
+        super().__init__(f=Qt.WindowMaximizeButtonHint, parent=parent)
+        self.setAttribute(Qt.WA_DeleteOnClose) # free memory on close
+
+        self.model = model
+        self.meshdata = vp.geometry.MeshData(
+            vertices=vertices,
+            faces=faces,
+            )
+
+        self.setup_canvas()
+        self.setup_ui()
+        self.setup_callbacks()
+
+        self.vb1.camera.set_range()
+
+    def setup_callbacks(self):
+        self.canvas.connect(self.on_key_press)
+
+    def on_key_press(self, e):
+        key = e.key.name
+
+        if key == 'Escape':
+            self.close()
+
+    def setup_ui(self):
+        self.setWindowTitle('Mesh Viewer')
+
+        vlayout = QVBoxLayout()
+        vlayout.addWidget(self.canvas.native)
+
+        self.setLayout(vlayout)
+        self.show()
+
+    def setup_canvas(self):
+        self.canvas = scene.SceneCanvas(show=True, bgcolor=BG_COLOR, parent=self)
+        # self.canvas.measure_fps()
+        grid = self.canvas.central_widget.add_grid()
+
+        self.vb1 = grid.add_view(
+            row=0,
+            col=0,
+            border_color=BG_COLOR_CONTRAST,
+            border_width=0.,
+            camera = 'arcball'
+
+        )
+        # scene.visuals.XYZAxis(parent=self.vb1.scene)
+
+        self.mesh = self.setup_mesh()
+        self.vb1.add(self.mesh)
+
+    def setup_mesh(self):
+
+        mesh = scene.visuals.Mesh(
+            shading='flat',
+            meshdata = self.meshdata,
+        )
+        wireframe_filter = vp.visuals.filters.WireframeFilter(width=.1, color=BG_COLOR_CONTRAST)
+        mesh.attach(wireframe_filter)
+        
+        return mesh
+
+class ScatterViewer(QDialog):
+    def __init__(self, model, vertices, parent=None):
+        super().__init__(f=Qt.WindowMaximizeButtonHint, parent=parent)
+        self.setAttribute(Qt.WA_DeleteOnClose) # free memory on close
+
+        self.model = model
+        self.scatter = scene.visuals.Markers(
+            pos=vertices,
+            # pos=np.zeros((1,3), dtype=np.float32),
+            size=5,
+            face_color=WHITE,
+            edge_width=0,
+        )
+
+        self.setup_canvas()
+        self.setup_ui()
+        self.setup_callbacks()
+
+        self.vb1.camera.set_range()
+
+    def setup_callbacks(self):
+        self.canvas.connect(self.on_key_press)
+
+    def on_key_press(self, e):
+        key = e.key.name
+
+        if key == 'Escape':
+            self.close()
+
+    def setup_ui(self):
+        self.setWindowTitle('Mesh Viewer')
+
+        vlayout = QVBoxLayout()
+        vlayout.addWidget(self.canvas.native)
+
+        self.setLayout(vlayout)
+        self.show()
+
+    def setup_canvas(self):
+        self.canvas = scene.SceneCanvas(show=True, bgcolor=BG_COLOR, parent=self)
+        # self.canvas.measure_fps()
+        grid = self.canvas.central_widget.add_grid()
+
+        self.vb1 = grid.add_view(
+            row=0,
+            col=0,
+            border_color=BG_COLOR_CONTRAST,
+            border_width=0.,
+            camera = 'arcball'
+
+        )
+        # scene.visuals.XYZAxis(parent=self.vb1.scene)
+
+        self.vb1.add(self.scatter)
 
 class FPTViewer(QDialog):
 

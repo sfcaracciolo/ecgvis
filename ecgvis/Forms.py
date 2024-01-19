@@ -381,6 +381,61 @@ class SpatioTemporalViewerForm(QGroupBox):
         if all(conds):
             self._viewers.append(SpatioTemporalViewer(self.model, self.nodes.get_tensor(), self.faces.get_tensor(), self.values.get_tensor()))
 
+class LambdaViewerForm(QGroupBox):
+    def __init__(self, model, parent=None) -> None:
+        super().__init__(parent=parent)
+
+        self.model = model
+        self._viewers = []
+        self.setup_ui()
+        self.setup_callbacks()
+
+        # self.set_test_tensors()
+
+    def set_test_tensors(self):
+        self.toggle_visibility()
+        self.nodes.path.setText('KIT/raw/heart/nodes')
+        self.nodes.sliding.setText(':,:')
+        self.faces.path.setText('KIT/raw/heart/triangles')
+        self.faces.sliding.setText(':,:')
+        self.values.path.setText('KIT/Simulation_01_SEPTUMCENTER/results/tkh0/X')
+        self.values.sliding.setText(':,:,:')
+        # self.values.transpose.setChecked(True)
+
+    def setup_callbacks(self):
+        self.box_buttons.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+
+    def toggle_visibility(self):
+        if self.isHidden():
+            self.show()
+        else:
+            self.hide()
+
+    def setup_ui(self):
+        
+        self.nodes = TensorWidget(self.model)
+        self.faces = TensorWidget(self.model)
+        self.values = TensorWidget(self.model)
+        self.box_buttons = QDialogButtonBox(QDialogButtonBox.Apply)# | QDialogButtonBox.Cancel)
+        
+        layout = QFormLayout()
+        layout.addRow('Nodes', self.nodes)
+        layout.addRow('Faces', self.faces)
+        layout.addRow('Values', self.values)
+        layout.addWidget(self.box_buttons)
+        # layout.addStretch(1)
+        self.setLayout(layout)
+        self.hide()
+
+    def apply(self):
+        conds = [
+            self.nodes.path.text(),
+            self.faces.path.text(),
+            self.values.path.text()
+        ]
+        if all(conds):
+            self._viewers.append(LambdaViewer(self.model, self.nodes.get_tensor(), self.faces.get_tensor(), self.values.get_tensor()))
+
 class AtRtViewerForm(QGroupBox):
     def __init__(self, model, parent=None) -> None:
         super().__init__(parent=parent)
@@ -390,7 +445,7 @@ class AtRtViewerForm(QGroupBox):
         self.setup_ui()
         self.setup_callbacks()
 
-        self.set_test_tensors()
+        # self.set_test_tensors()
 
     def set_test_tensors(self):
         self.toggle_visibility()
@@ -457,7 +512,7 @@ class IsoLinesViewerForm(QGroupBox):
         self.setup_ui()
         self.setup_callbacks()
 
-        self.set_test_tensors()
+        # self.set_test_tensors()
 
     def set_test_tensors(self):
         self.toggle_visibility()
@@ -698,7 +753,7 @@ class FPTForm(QGroupBox):
         self.setup_ui()
         self.setup_callbacks()
 
-        self.set_default()
+        # self.set_default()
 
     def setup_callbacks(self):
         self.box_buttons.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
@@ -730,13 +785,13 @@ class FPTForm(QGroupBox):
         self.hide()
 
     def set_default(self):
-        self.signal.path.setText('164/raw_bp_2_300_pli_iso')
+        self.signal.path.setText('50\\ground_truth\\ecg')
         self.signal.sliding.setText(':')
-        self.fpt.path.setText('164/fpt')
+        self.fpt.path.setText('50\\ground_truth\\fpt')
         self.fpt.sliding.setText(':,:')
-        self.bad_beats.path.setText('164/bad_beats')
+        self.bad_beats.path.setText('50\\ground_truth\\bad_beats')
         self.bad_beats.sliding.setText(':')
-        self.input_window.setValue(330)
+        self.input_window.setValue(235)
 
         self.show()
 
@@ -750,3 +805,171 @@ class FPTForm(QGroupBox):
             parent=self.parent()
         )
         self._list_viewers.append(v)
+
+class AlphaShapesForm(QGroupBox):
+    def __init__(self, model, parent=None) -> None:
+        super().__init__(parent=parent)
+        self.model = model
+        self._list_viewers = []
+        self.setup_ui()
+        self.setup_callbacks()
+
+        # self.set_default()
+
+    def setup_callbacks(self):
+        self.box_buttons.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+
+    def toggle_visibility(self):
+        if self.isHidden():
+            self.show()
+        else:
+            self.hide()
+
+    def setup_ui(self):
+        self.nodes = TensorWidget(self.model)
+
+        self.input_alpha_min = QDoubleSpinBox()
+        self.input_alpha_min.setMinimum(.1)
+        self.input_alpha_min.setMaximum(100.)
+        self.input_alpha_min.setSingleStep(.1)
+        self.input_alpha_min.setValue(.1)
+
+        self.input_alpha_max = QDoubleSpinBox()
+        self.input_alpha_max.setMinimum(.1)
+        self.input_alpha_max.setMaximum(10000.)
+        self.input_alpha_max.setSingleStep(.1)
+        self.input_alpha_max.setValue(100.)
+
+        self.input_alpha_amount = QSpinBox()
+        self.input_alpha_amount.setMinimum(1)
+        self.input_alpha_amount.setMaximum(1e5)
+        self.input_alpha_amount.setValue(100)
+
+        self.box_buttons = QDialogButtonBox(QDialogButtonBox.Apply)# | QDialogButtonBox.Cancel)
+
+        layout = QFormLayout()
+        layout.addRow('Nodes', self.nodes)
+        layout.addRow('Alpha min.', self.input_alpha_min)
+        layout.addRow('Alpha max.', self.input_alpha_max)
+        layout.addRow('Alpha cant.', self.input_alpha_amount)
+        layout.addWidget(self.box_buttons)
+        # layout.addStretch(1)
+        self.setLayout(layout)
+        self.hide()
+
+    def set_default(self):
+        self.nodes.path.setText('sinus_dog\\data\\torso\\electrodes')
+        self.nodes.sliding.setText(':,:')
+        self.input_alpha_min.setValue(.1)
+        self.input_alpha_max.setValue(200.)
+        self.input_alpha_amount.setValue(100)
+
+        self.show()
+
+    def apply(self):
+        amin = self.input_alpha_min.value()
+        amax = self.input_alpha_max.value()
+        an = self.input_alpha_amount.value()
+        v = AlphaShapesViewer(
+            self.model,
+            self.nodes.get_tensor(),
+            np.linspace(amin, amax,num=an),
+            parent=self.parent()
+        )
+        self._list_viewers.append(v)
+
+
+class MeshViewerForm(QGroupBox):
+    def __init__(self, model, parent=None) -> None:
+        super().__init__(parent=parent)
+
+        self.model = model
+        self._viewers = []
+        self.setup_ui()
+        self.setup_callbacks()
+
+        # self.set_test_tensors()
+
+    def set_test_tensors(self):
+        self.toggle_visibility()
+        self.nodes.path.setText('Meshes/Torso/electrodes')
+        self.nodes.sliding.setText(':,:')
+        self.faces.path.setText('Meshes/Torso/faces')
+        self.faces.sliding.setText(':,:')
+
+    def setup_callbacks(self):
+        self.box_buttons.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+
+    def toggle_visibility(self):
+        if self.isHidden():
+            self.show()
+        else:
+            self.hide()
+
+    def setup_ui(self):
+        
+        self.nodes = TensorWidget(self.model)
+        self.faces = TensorWidget(self.model)
+        self.box_buttons = QDialogButtonBox(QDialogButtonBox.Apply)# | QDialogButtonBox.Cancel)
+        
+        layout = QFormLayout()
+        layout.addRow('Nodes', self.nodes)
+        layout.addRow('Faces', self.faces)
+        layout.addWidget(self.box_buttons)
+        # layout.addStretch(1)
+        self.setLayout(layout)
+        self.hide()
+
+    def apply(self):
+        conds = [
+            self.nodes.path.text(),
+            self.faces.path.text(),
+        ]
+        if all(conds):
+            self._viewers.append(MeshViewer(self.model, self.nodes.get_tensor(), self.faces.get_tensor()))
+
+class ScatterViewerForm(QGroupBox):
+    def __init__(self, model, parent=None) -> None:
+        super().__init__(parent=parent)
+
+        self.model = model
+        self._viewers = []
+        self.setup_ui()
+        self.setup_callbacks()
+
+        # self.set_test_tensors()
+
+    def set_test_tensors(self):
+        self.toggle_visibility()
+        self.nodes.path.setText('Meshes/Torso/electrodes')
+        self.nodes.sliding.setText(':,:')
+        self.faces.path.setText('Meshes/Torso/faces')
+        self.faces.sliding.setText(':,:')
+
+    def setup_callbacks(self):
+        self.box_buttons.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+
+    def toggle_visibility(self):
+        if self.isHidden():
+            self.show()
+        else:
+            self.hide()
+
+    def setup_ui(self):
+        
+        self.nodes = TensorWidget(self.model)
+        self.box_buttons = QDialogButtonBox(QDialogButtonBox.Apply)# | QDialogButtonBox.Cancel)
+        
+        layout = QFormLayout()
+        layout.addRow('Nodes', self.nodes)
+        layout.addWidget(self.box_buttons)
+        # layout.addStretch(1)
+        self.setLayout(layout)
+        self.hide()
+
+    def apply(self):
+        conds = [
+            self.nodes.path.text(),
+        ]
+        if all(conds):
+            self._viewers.append(ScatterViewer(self.model, self.nodes.get_tensor()))

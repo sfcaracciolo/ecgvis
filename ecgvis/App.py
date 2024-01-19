@@ -16,7 +16,8 @@ from datetime import datetime
 #                 '/media/santiago/datos/sync/Tesis doctoral/Artículos propios/WR/wr_db_caracciolo.zarr'
 #             ]
 
-# DATASET = int(sys.argv[-1])
+
+ROOT_PATH = sys.argv[-1]
 
 class ecgvis(QMainWindow):
     def __init__(self, app):
@@ -26,7 +27,7 @@ class ecgvis(QMainWindow):
         self.setup_ui()
 
     def setup_ui(self):
-        self.setWindowTitle('ecgvis')
+        self.setWindowTitle('ECGVis')
         self.model = ZarrModel()
         zarrExplorer = ZarrExplorer(parent=self)
         zarrExplorer.treeView.setModel(self.model)
@@ -46,31 +47,35 @@ class ecgvis(QMainWindow):
             (TemporalViewerForm(self.model), 'Temporal Viewer'),
             (MatrixViewerForm(self.model), 'Matrix Viewer'),
             (SpatioTemporalViewerForm(self.model), 'SpatioTemporal Viewer'),
-            (AtRtViewerForm(self.model), 'AT/RT Viewer'),
-            (IsoLinesViewerForm(self.model), 'Isolines Viewer'),
+            # (AtRtViewerForm(self.model), 'AT/RT Viewer'),
+            # (IsoLinesViewerForm(self.model), 'Isolines Viewer'),
             # (ExperimentForm(self.model), 'Experiment Analizer'),
             # (InverseProblemForm(self.model), 'Inverse Problem'),
             # (NearestNodesForm(self.model), 'Nearest Nodes'),
             # (PostProcessingForm(self.model), 'Pos Processing'),
-            (NonlinearNotchForm(self.model), 'Nonlinear Adaptive Notch Filter'),
-            (MedianFilterForm(self.model), 'Baseline Drift Removal Median Filter'),
-            (SplineFilterForm(self.model), 'Baseline Drift Removal Spline Filter'),
-            (IsolineCorrectionForm(self.model), 'Isoline Correction'),
-            (LaplaceInterpolationForm(self.model), 'Laplace Spatial Interpolation'),
+            # (NonlinearNotchForm(self.model), 'Nonlinear Adaptive Notch Filter'),
+            # (MedianFilterForm(self.model), 'Baseline Drift Removal Median Filter'),
+            # (SplineFilterForm(self.model), 'Baseline Drift Removal Spline Filter'),
+            # (IsolineCorrectionForm(self.model), 'Isoline Correction'),
+            # (LaplaceInterpolationForm(self.model), 'Laplace Spatial Interpolation'),
             # (SparseDictBuilderForm(self.model), 'Sparse Dictionary Builder'),
             (FPTForm(self.model), 'Fiducials Point Table Viewer'),
+            # (AlphaShapesForm(self.model), 'Alpha Shapes Viewer'),
+            (MeshViewerForm(self.model), 'Mesh Viewer'),
+            (ScatterViewerForm(self.model), 'Scatter Viewer'),
+            (LambdaViewerForm(self.model), 'Lambda Viewer'),
         ]
 
         # Menu Bar
         menuBar = self.menuBar()
-        self.fileMenu = menuBar.addMenu('&File')
+        # self.fileMenu = menuBar.addMenu('&File')
         self.tasksMenu = menuBar.addMenu('&Tasks')
 
         # Tasks Container
         tasksContainer = TasksContainer(forms, parent=self)
 
         tasksDock = QDockWidget()
-        tasksDock.setWindowTitle('Tasks Container')
+        tasksDock.setWindowTitle('Task Container')
         tasksDock.setAllowedAreas(Qt.RightDockWidgetArea)
         tasksDock.setFeatures(QDockWidget.DockWidgetMovable)
         tasksDock.setWidget(tasksContainer)
@@ -81,7 +86,10 @@ class ecgvis(QMainWindow):
         self.resize(500, 700)
 
         # load default zarr path
-        path = '/media/santiago/datos/db.zarr'
+        # path = 'E:\wr_db_caracciolo.zarr'
+        # path = 'E:\db.zarr'
+        path = ROOT_PATH # 'E:\wrdb\jmraw\data.zarr'
+        # path = 'E:\wrdb\data.zarr'
         self.model.setZarrRoot(path)
         zarrExplorer.treeView.setRootIndex(self.model.index(path))
 

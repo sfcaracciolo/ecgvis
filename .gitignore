@@ -10,3 +10,5 @@ pyvenv.cfg
 .python-version
 Scripts/
 build/
+/.qt_for_python
+etc
