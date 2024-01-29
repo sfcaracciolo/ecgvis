@@ -1,4 +1,4 @@
-# ecgvis
+# ECGVis
 A desktop application to visualize multichannel ECG & potential maps over cardiac or torso geometries.
 
 
