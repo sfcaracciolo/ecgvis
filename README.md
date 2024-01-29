@@ -50,3 +50,6 @@ El visualizador espacio-temporal muestra el mapa de potencial sobre una malla y 
 
 
 <img src="screenshots/spatiotemporalviewer.png" alt="drawing" width=""/>
+
+
+El *software* incluye las tareas *ScatterViewer*, *MeshViewer* y *LambdaViewer*, que son similares a la tarea descripta en esta sección, pero adaptado a diferentes entradas. *ScatterViewer* requiere únicamente nodos, *MeshViewer* nodos y triángulos, y *LambdaViewer* admite que el potencial sea parametrizado. Este último caso, se ha utilizado para explorar los mapas de potencial para diferentes valores de $\lambda$ obtenidos en las regularizaciones.
