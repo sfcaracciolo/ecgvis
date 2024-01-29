@@ -2,7 +2,6 @@
 /include
 /lib
 /lib64
-/screenshots
 /ecgvis.egg-info
 __pycache__
 pyvenv.cfg
