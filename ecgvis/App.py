@@ -8,14 +8,6 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QApplication, QDockWidget, QMainWindow, QWidget
 from datetime import datetime
 
-# ZARR_PATH = [   '/media/santiago/datos/Repositorios/pyecgi_struct/src/preprocessing ds_0/ds.zarr',
-#                 '/media/santiago/datos/Repositorios/pyecgi_struct/src/preprocessing ds_1/ds.zarr',
-#                 '/media/santiago/datos/Repositorios/pyecgi_struct/src/preprocessing ds_4/ds.zarr',
-#                 '/media/santiago/datos/Repositorios/pyecgi_struct/src/preprocessing ds_13/ds.zarr',
-#                 '/media/santiago/datos/sync/Tesis doctoral/Artículos propios/WR/wr_db_mendieta.zarr',
-#                 '/media/santiago/datos/sync/Tesis doctoral/Artículos propios/WR/wr_db_caracciolo.zarr'
-#             ]
-
 
 ROOT_PATH = sys.argv[-1]
 
